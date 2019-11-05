@@ -57,18 +57,18 @@ dangerous_locations:
 .globl set_torque
 set_torque:
   addi sp, sp, -12 # create stack
-  sw ra, 0(sp)
+  sw ra, 8(sp)
   sw a0, 4(sp) # store a0 value
-  sw a1, 8(sp) # store a1 value
+  sw a1, 0(sp) # store a1 value
   li a0, 0
   lw a1, 4(sp)
   jal set_engine_torque # call set_engine_torque with a0 value
   li a0, 1
-  lw a1, 8(sp)
+  lw a1, 0(sp)
   jal set_engine_torque # call set_engine_torque with a1 value inside a0
-  lw ra, 0(sp)
+  lw a1, 0(sp) # pop a1 from stack
   lw a0, 4(sp) # pop a0 from stack
-  lw a1, 8(sp) # pop a1 from stack
+  lw ra, 8(sp)
   addi sp, sp, 12
   ret
 

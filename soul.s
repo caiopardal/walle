@@ -130,223 +130,226 @@ machine_stack:
 # return -> -1 in case one or more values are out of range / 0 in case both values are in range (the return is in the a0)
 .globl set_torque
 set_torque:
-  addi    sp, sp, -32
-  sw      ra, 28(sp)
-  sw      s0, 24(sp)
-  addi    s0, sp, 32
-  sw      a0, -16(s0)
-  sw      a1, -20(s0)
-  lw      a0, -16(s0)
-  addi    a1, zero, 100
-  blt     a1, a0, set_torque_lessThanOneHundred
-  j       set_torque_compareWithMinusOneHundred1
+  addi sp, sp, -20
+  sw ra, 16(sp)
+  sw s0, 12(sp)
+  addi s0, sp, 32 # Create stack using s0 that will be the aux stack for this function
+  sw a0, -4(s0) # Store a0 variable into s0 stack
+  sw a1, -8(s0) # Store a1 variable into s0 stack
+  lw a0, -4(s0) 
+  addi a1, zero, 100 # Add 100 to a1 to compare with a0
+  blt a1, a0, set_torque_lessThanOneHundred1 # If a0's value is less than 100, branch to check if a1's value is lower too
+  j set_torque_compareWithMinusOneHundred1 
 
-  set_torque_compareWithMinusOneHundred1:
-    lw      a0, -16(s0)
-    addi    a1, zero, -101
-    blt     a1, a0, set_torque_returnZero
-    j       set_torque_lessThanOneHundred
+  set_torque_compareWithMinusOneHundred1: 
+    lw a0, -4(s0)
+    addi a1, zero, -101    # Check if a0's value is less than -100
+    blt a1, a0, set_torque_returnZero # If it's then return 0
+    j set_torque_lessThanOneHundred
 
   set_torque_lessThanOneHundred1:
-    lw      a0, -20(s0)
-    addi    a1, zero, 100
-    blt     a1, a0, set_torque_returnMinusOne
-    j       set_torque_compareWithMinusOneHundred2
+    lw a0, -8(s0)
+    addi a1, zero, 100   # Check if a1's value is less than 100
+    blt a1, a0, set_torque_returnMinusOne # If it's then return -1
+    j set_torque_compareWithMinusOneHundred2 
 
   set_torque_compareWithMinusOneHundred2:
-    lw      a0, -20(s0)
-    addi    a1, zero, -101
-    blt     a1, a0, set_torque_returnZero
-    j       set_torque_returnMinusOne
+    lw a0, -8(s0)
+    addi a1, zero, -101 
+    blt a1, a0, set_torque_returnZero # Check if a1's value is less than -100
+    j set_torque_returnMinusOne
 
   set_torque_returnMinusOne:
-    addi    a0, zero, -1
-    sw      a0, -12(s0)
-    j       set_torque_returnSetTorque
+    addi a0, zero, -1 # Set -1 as function return parameter
+    sw a0, 0(s0)
+    j set_torque_returnSetTorque # Call return method for this function
 
   set_torque_returnZero:
-    mv      a0, zero
-    sw      a0, -12(s0)
-    j       set_torque_returnSetTorque
+    mv a0, zero # Set 0 as function return parameter
+    sw a0, 0(s0)
+    j set_torque_returnSetTorque # Call return method for this function
 
   set_torque_returnSetTorque:
-    lw      a0, -12(s0)
-    lw      s0, 24(sp)
-    lw      ra, 28(sp)
-    addi    sp, sp, 32
+    lw a0, 0(s0)
+    lw s0, 12(sp)
+    lw ra, 16(sp)
+    addi sp, sp, 20
     ret
 
 # args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
 # return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
 .globl set_engine_torque
 set_engine_torque:
-  addi    sp, sp, -32
-  sw      ra, 28(sp)
-  sw      s0, 24(sp)
-  addi    s0, sp, 32
-  sw      a0, -16(s0)
-  sw      a1, -20(s0)
-  lw      a0, -20(s0)
-  addi    a1, zero, 100
-  blt     a1, a0, set_engine_torque_lessThanOneHundred
-  j       set_engine_torque_compareWithMinusOneHundred
+  addi sp, sp, -20
+  sw ra, 16(sp)
+  sw s0, 12(sp)
+  addi s0, sp, 20 # Create stack using s0 that will be the aux stack for this function
+  sw a0, -4(s0) # Store a0 variable into s0 stack
+  sw a1, -8(s0) # Store a1 variable into s0 stack
+  lw a0, -8(s0)
+  addi a1, zero, 100 # Add 100 to a1 to compare with a0
+  blt a1, a0, set_engine_torque_lessThanOneHundred # If a0's value is less than 100, branch to check if a1's value is lower too
+  j set_engine_torque_compareWithMinusOneHundred
 
   set_engine_torque_compareWithMinusOneHundred:
-    lw      a0, -20(s0)
-    addi    a1, zero, -101
-    blt     a1, a0, set_engine_torque_lessThanMinusOneHundred
-    j       set_engine_torque_lessThanOneHundred
+    lw a0, -8(s0)
+    addi a1, zero, -101 # Check if a0's value is less than -100
+    blt a1, a0, set_engine_torque_lessThanMinusOneHundred # If it's than return -1
+    j set_engine_torque_lessThanOneHundred
 
   set_engine_torque_lessThanOneHundred:
-    addi    a0, zero, -1
-    sw      a0, -12(s0)
-    j       set_engine_torque_returnSetEngineTorque
+    addi a0, zero, -1
+    sw a0, 0(s0)
+    j set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   set_engine_torque_lessThanMinusOneHundred:
-    lw      a0, -16(s0)
-    addi    a1, zero, 1
-    bne     a0, a1, set_engine_torque_notEqualToOne
-    j       set_engine_torque_equalsZero
+    lw a0, -4(s0)
+    addi a1, zero, 1 # Check if engine_id is 1
+    bne a0, a1, set_engine_torque_notEqualToOne # If it's not equal to one, return -2
+    j set_engine_torque_equalsZero
 
   set_engine_torque_equalsZero:
-    lw      a0, -16(s0)
-    mv      a1, zero
-    beq     a0, a1, set_engine_torque_returnFromEqualsZero
-    j       set_engine_torque_notEqualToOne
+    lw a0, -4(s0)
+    mv a1, zero
+    beq a0, a1, set_engine_torque_returnFromEqualsZero # If it's equal to zero, return 0
+    j set_engine_torque_notEqualToOne
 
   set_engine_torque_notEqualToOne:
-    addi    a0, zero, -2
-    sw      a0, -12(s0)
-    j       set_engine_torque_returnSetEngineTorque
+    addi a0, zero, -2 # Set -2 as function return parameter
+    sw a0, 0(s0)
+    j set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   set_engine_torque_returnFromEqualsZero:
-    mv      a0, zero
-    sw      a0, -12(s0)
-    j       set_engine_torque_returnSetEngineTorque
+    mv a0, zero # Set 0 as function return parameter
+    sw a0, 0(s0)
+    j set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   set_engine_torque_returnSetEngineTorque:
-    lw      a0, -12(s0)
-    lw      s0, 24(sp)
-    lw      ra, 28(sp)
-    addi    sp, sp, 32
+    lw a0, 0(s0)
+    lw s0, 12(sp)
+    lw ra, 16(sp)
+    addi sp, sp, 20
     ret
 
 # args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
 # return -> -1 in case the servo id is invalid / -2 in case the servo angle is invalid / 0 in case the servo id and the angle is valid (the return is in the a0)
 .globl set_head_servo
 set_head_servo:
-  addi    sp, sp, -32 
-  sw      ra, 28(sp) # Adds ra into stack
-  sw      s0, 24(sp) # Adds s0 into stack because it`ll be used to store a0 and a1 values
-  addi    s0, sp, 32
-  sw      a0, -16(s0)
-  sw      a1, -20(s0)
-  lw      a0, -16(s0)
-  mv      a1, zero
-  beq     a0, a1, set_head_servo_validServoId0
-  j       set_head_servo_checkIfServoIs1
+  addi sp, sp, -20 
+  sw ra, 16(sp) # Add ra into stack
+  sw s0, 12(sp) # Create stack using s0 that will be the aux stack for this function
+  addi s0, sp, 20
+  sw a0, -4(s0)
+  sw a1, -8(s0)
+  lw a0, -4(s0)
+  mv a1, zero
+  beq a0, a1, set_head_servo_validServoId0 # Check if servo_id is 0
+  j set_head_servo_checkIfServoIs1
 
   set_head_servo_checkIfServoIs1:
-    lw      a0, -16(s0)
-    addi    a1, zero, 1
-    beq     a0, a1, set_head_servo_validServoId0
-    j       set_head_servo_checkIfServoIs2
+    lw a0, -4(s0)
+    addi a1, zero, 1
+    beq a0, a1, set_head_servo_validServoId0 # If it's then check angle's limit
+    j set_head_servo_checkIfServoIs2
 
   set_head_servo_checkIfServoIs2:
-    lw      a0, -16(s0)
-    addi    a1, zero, 2
-    bne     a0, a1, set_head_servo_notValidServoId
-    j       set_head_servo_validServoId0
+    lw a0, -4(s0)
+    addi a1, zero, 2 # Check if servo_id is 2
+    bne a0, a1, set_head_servo_notValidServoId # If it's not 0, 1 or 2 then return -1
+    j set_head_servo_validServoId0
 
   set_head_servo_validServoId0:
-    lw      a0, -16(s0)
-    mv      a1, zero
-    bne     a0, a1, set_head_servo_checkIfItIsServoId1
-    j       set_head_servo_checkGreaterLimitForBase
+    lw a0, -4(s0)
+    mv a1, zero
+    bne a0, a1, set_head_servo_checkIfItIsServoId1 # Check if servo_id is 1
+    j set_head_servo_checkGreaterLimitForBase
 
   set_head_servo_checkGreaterLimitForBase:
-    lw      a0, -20(s0)
-    addi    a1, zero, 116
-    blt     a1, a0, set_head_servo_notValidAngleForBase
-    j       set_head_servo_checkLowerLimitForBase
+    lw a0, -8(s0)
+    addi a1, zero, 116 # Check greater limit for Base
+    blt a1, a0, set_head_servo_notValidAngleForBase # If it's not validAngle, return -2
+    j set_head_servo_checkLowerLimitForBase
 
   set_head_servo_checkLowerLimitForBase:
-    lw      a0, -20(s0)
-    addi    a1, zero, 15
-    blt     a1, a0, set_head_servo_notValidAngleForBase
-    j       set_head_servo_notValidAngleForBase
+    lw a0, -8(s0)
+    addi a1, zero, 15 # Check lower limit for Base
+    blt a1, a0, set_head_servo_validAngleForBase # If it's a validAngle, return 0
+    j set_head_servo_notValidAngleForBase
 
   set_head_servo_notValidAngleForBase:
-    addi    a0, zero, -2
-    sw      a0, -12(s0)
-    j       set_head_servo_returnSetHeadServo
+    addi a0, zero, -2 # Set -2 as function return parameter
+    sw a0, 0(s0)
+    j set_head_servo_returnSetHeadServo # Call return method for this function
 
-  set_head_servo_notValidAngleForBase:
-    j       set_head_servo_setZeroForReturn
+  set_head_servo_validAngleForBase:
+    j set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
 
   set_head_servo_checkIfItIsServoId1:
-    lw      a0, -16(s0)
-    addi    a1, zero, 1
-    bne     a0, a1, set_head_servo_checkIfItIsServoId2
-    j       set_head_servo_checkGreaterLimitForMid
+    lw a0, -4(s0)
+    addi a1, zero, 1
+    bne a0, a1, set_head_servo_checkIfItIsServoId2
+    j set_head_servo_checkGreaterLimitForMid
 
   set_head_servo_checkGreaterLimitForMid:
-    lw      a0, -20(s0)
-    addi    a1, zero, 90
-    blt     a1, a0, set_head_servo_notValidAngleForMid
-    j       set_head_servo_checkLowerLimitForMid
+    lw a0, -8(s0)
+    addi a1, zero, 90 # Check greater limit for Mid
+    blt a1, a0, set_head_servo_notValidAngleForMid
+    j set_head_servo_checkLowerLimitForMid
     
   set_head_servo_checkLowerLimitForMid:
-    lw      a0, -20(s0)
-    addi    a1, zero, 51
-    blt     a1, a0, set_head_servo_notValidAngleForTop:
-    j       set_head_servo_notValidAngleForMid
+    lw a0, -8(s0)
+    addi a1, zero, 51 # Check lower limit for Mid
+    blt a1, a0, set_head_servo_validAngleForTop # If it's a validAngle, return 0
+    j set_head_servo_notValidAngleForMid
 
   set_head_servo_notValidAngleForMid:
-    addi    a0, zero, -2
-    sw      a0, -12(s0)
-    j       set_head_servo_returnSetHeadServo
+    addi a0, zero, -2  # Set -2 as function return parameter
+    sw a0, 0(s0)
+    j set_head_servo_returnSetHeadServo # Call return method for this function
+
+  set_head_servo_validAngleForMid:
+    j set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
 
   set_head_servo_checkIfItIsServoId2:
-    lw      a0, -16(s0)
-    addi    a1, zero, 2
-    bne     a0, a1, set_head_servo_notValidAngleForTop:
-    j       set_head_servo_checkGreaterLimitForMid
+    lw a0, -4(s0)
+    addi a1, zero, 2
+    bne a0, a1, set_head_servo_notValidAngleForTop # If it's not validAngle, return -2
+    j set_head_servo_checkGreaterLimitForMid
 
   set_head_servo_checkGreaterLimitForMid:
-    lw      a0, -20(s0)
-    addi    a1, zero, 156
-    blt     a1, a0, set_head_servo_notValidAngleForTop
-    j       set_head_servo_checkLowerLimitForTop
+    lw a0, -8(s0)
+    addi a1, zero, 156 # Check greater limit for Top
+    blt a1, a0, set_head_servo_notValidAngleForTop # If it's not validAngle, return -2
+    j set_head_servo_checkLowerLimitForTop
 
   set_head_servo_checkLowerLimitForTop:
-    lw      a0, -20(s0)
-    addi    a1, zero, -1
-    blt     a1, a0, set_head_servo_notValidAngleForTop:
-    j       set_head_servo_notValidAngleForTop
+    lw a0, -8(s0)
+    addi a1, zero, -1 # Check lower limit for Top
+    blt a1, a0, set_head_servo_validAngleForTop # If it's a validAngle, return 0
+    j set_head_servo_notValidAngleForTop
 
   set_head_servo_notValidAngleForTop:
-    addi    a0, zero, -2
-    sw      a0, -12(s0)
-    j       set_head_servo_returnSetHeadServo
+    addi a0, zero, -2 # Set -2 as function return parameter
+    sw a0, 0(s0)
+    j set_head_servo_returnSetHeadServo # Call return method for this function
 
-  set_head_servo_notValidAngleForTop:
-    j       set_head_servo_setZeroForReturn
+  set_head_servo_validAngleForTop:
+    j set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
 
   set_head_servo_setZeroForReturn:
-    mv      a0, zero
-    sw      a0, -12(s0)
-    j       set_head_servo_returnSetHeadServo
+    mv a0, zero
+    sw a0, 0(s0)
+    j set_head_servo_returnSetHeadServo # Call return method for this function
 
   set_head_servo_notValidServoId:
-    addi    a0, zero, -1
-    sw      a0, -12(s0)
-    j       set_head_servo_returnSetHeadServo
+    addi a0, zero, -1
+    sw a0, 0(s0)
+    j set_head_servo_returnSetHeadServo # Call return method for this function
 
   set_head_servo_returnSetHeadServo:
-    lw      a0, -12(s0)
-    lw      s0, 24(sp)
-    lw      ra, 28(sp)
-    addi    sp, sp, 32
+    lw a0, 0(s0)
+    lw s0, 12(sp)
+    lw ra, 16(sp)
+    addi sp, sp, 20
     ret
 
