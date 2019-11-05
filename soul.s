@@ -27,6 +27,17 @@ _start:
 	and t1, t1, t2 # com o valor 00
 	csrw mstatus, t1
 
+  # activating the GPT
+  la t1, peripheral_gpt_1
+  li t1, 0(t1)
+  li t2, 1 # interrupt every 1 milisseconds
+  sw t2, 0(t1) 
+
+  # initializing timer with 0
+  la t1, machine_time
+  li t2, 0
+  sw t2, 0(t1) 
+
 	la t0, boot # Grava o endereço do rótulo user
 	csrw mepc, t0 # no registrador mepc
 	mret # PC <= MEPC; MIE <= MPIE; Muda modo para MPP
@@ -78,7 +89,24 @@ int_handler:
   andi a1, a1, 0x3f # isola a causa de interrupção
   li a2, 7 # a2 = interrupção do timer
   bne a1, a2, int_handler_restore_context # desvia se não for interrupção do temporizador da máquina
-  # TODO: configurar o GPT aqui
+  
+  # handling the GPT interruption
+  la t1, machine_stack
+  li t1, 0(t1)
+  addi t1, t1, 1
+ 
+  # flagging that the GPT interruption has already been handled
+  la t1, peripheral_gpt_2
+  li t1, 0(t1)
+  li t2, 0 # interruption flag bit, set "false"
+  sb t2, 0(t1) 
+  
+  # activating the GPT
+  la t1, peripheral_gpt_1
+  li t1, 0(t1)
+  li t2, 1 # interrupt every 1 milisseconds
+  sw t2, 0(t1) 
+  j int_handler_restore_context
 
   int_handler_exception: 
     # TODO: implementar o tratamento das SysCallss
@@ -120,6 +148,9 @@ int_handler:
 
     mret 
 
+peripheral_gpt_1: .word 0xFFFF0100 # GPT register responsible for interrupting every "x" milisseconds, size: word
+peripheral_gpt_2: .word 0xFFFF0104 # GPT register that flags if the interruption is already resolved, size: byte
+machine_time: .skip 4
 machine_stack:
 
 
