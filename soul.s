@@ -121,3 +121,232 @@ int_handler:
     mret 
 
 machine_stack:
+
+
+
+# Syscalls implementation
+
+# args -> a0: Valor do torque para a engrenagem 1, a1: Valor do torque para a engrenagem 2
+# return -> -1 in case one or more values are out of range / 0 in case both values are in range (the return is in the a0)
+.globl set_torque
+set_torque:
+  addi    sp, sp, -32
+  sw      ra, 28(sp)
+  sw      s0, 24(sp)
+  addi    s0, sp, 32
+  sw      a0, -16(s0)
+  sw      a1, -20(s0)
+  lw      a0, -16(s0)
+  addi    a1, zero, 100
+  blt     a1, a0, set_torque_lessThanOneHundred
+  j       set_torque_compareWithMinusOneHundred1
+
+  set_torque_compareWithMinusOneHundred1:
+    lw      a0, -16(s0)
+    addi    a1, zero, -101
+    blt     a1, a0, set_torque_returnZero
+    j       set_torque_lessThanOneHundred
+
+  set_torque_lessThanOneHundred1:
+    lw      a0, -20(s0)
+    addi    a1, zero, 100
+    blt     a1, a0, set_torque_returnMinusOne
+    j       set_torque_compareWithMinusOneHundred2
+
+  set_torque_compareWithMinusOneHundred2:
+    lw      a0, -20(s0)
+    addi    a1, zero, -101
+    blt     a1, a0, set_torque_returnZero
+    j       set_torque_returnMinusOne
+
+  set_torque_returnMinusOne:
+    addi    a0, zero, -1
+    sw      a0, -12(s0)
+    j       set_torque_returnSetTorque
+
+  set_torque_returnZero:
+    mv      a0, zero
+    sw      a0, -12(s0)
+    j       set_torque_returnSetTorque
+
+  set_torque_returnSetTorque:
+    lw      a0, -12(s0)
+    lw      s0, 24(sp)
+    lw      ra, 28(sp)
+    addi    sp, sp, 32
+    ret
+
+# args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
+# return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
+.globl set_engine_torque
+set_engine_torque:
+  addi    sp, sp, -32
+  sw      ra, 28(sp)
+  sw      s0, 24(sp)
+  addi    s0, sp, 32
+  sw      a0, -16(s0)
+  sw      a1, -20(s0)
+  lw      a0, -20(s0)
+  addi    a1, zero, 100
+  blt     a1, a0, set_engine_torque_lessThanOneHundred
+  j       set_engine_torque_compareWithMinusOneHundred
+
+  set_engine_torque_compareWithMinusOneHundred:
+    lw      a0, -20(s0)
+    addi    a1, zero, -101
+    blt     a1, a0, set_engine_torque_lessThanMinusOneHundred
+    j       set_engine_torque_lessThanOneHundred
+
+  set_engine_torque_lessThanOneHundred:
+    addi    a0, zero, -1
+    sw      a0, -12(s0)
+    j       set_engine_torque_returnSetEngineTorque
+
+  set_engine_torque_lessThanMinusOneHundred:
+    lw      a0, -16(s0)
+    addi    a1, zero, 1
+    bne     a0, a1, set_engine_torque_notEqualToOne
+    j       set_engine_torque_equalsZero
+
+  set_engine_torque_equalsZero:
+    lw      a0, -16(s0)
+    mv      a1, zero
+    beq     a0, a1, set_engine_torque_returnFromEqualsZero
+    j       set_engine_torque_notEqualToOne
+
+  set_engine_torque_notEqualToOne:
+    addi    a0, zero, -2
+    sw      a0, -12(s0)
+    j       set_engine_torque_returnSetEngineTorque
+
+  set_engine_torque_returnFromEqualsZero:
+    mv      a0, zero
+    sw      a0, -12(s0)
+    j       set_engine_torque_returnSetEngineTorque
+
+  set_engine_torque_returnSetEngineTorque:
+    lw      a0, -12(s0)
+    lw      s0, 24(sp)
+    lw      ra, 28(sp)
+    addi    sp, sp, 32
+    ret
+
+# args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
+# return -> -1 in case the servo id is invalid / -2 in case the servo angle is invalid / 0 in case the servo id and the angle is valid (the return is in the a0)
+.globl set_head_servo
+set_head_servo:
+  addi    sp, sp, -32 
+  sw      ra, 28(sp) # Adds ra into stack
+  sw      s0, 24(sp) # Adds s0 into stack because it`ll be used to store a0 and a1 values
+  addi    s0, sp, 32
+  sw      a0, -16(s0)
+  sw      a1, -20(s0)
+  lw      a0, -16(s0)
+  mv      a1, zero
+  beq     a0, a1, set_head_servo_validServoId0
+  j       set_head_servo_checkIfServoIs1
+
+  set_head_servo_checkIfServoIs1:
+    lw      a0, -16(s0)
+    addi    a1, zero, 1
+    beq     a0, a1, set_head_servo_validServoId0
+    j       set_head_servo_checkIfServoIs2
+
+  set_head_servo_checkIfServoIs2:
+    lw      a0, -16(s0)
+    addi    a1, zero, 2
+    bne     a0, a1, set_head_servo_notValidServoId
+    j       set_head_servo_validServoId0
+
+  set_head_servo_validServoId0:
+    lw      a0, -16(s0)
+    mv      a1, zero
+    bne     a0, a1, set_head_servo_checkIfItIsServoId1
+    j       set_head_servo_checkGreaterLimitForBase
+
+  set_head_servo_checkGreaterLimitForBase:
+    lw      a0, -20(s0)
+    addi    a1, zero, 116
+    blt     a1, a0, set_head_servo_notValidAngleForBase
+    j       set_head_servo_checkLowerLimitForBase
+
+  set_head_servo_checkLowerLimitForBase:
+    lw      a0, -20(s0)
+    addi    a1, zero, 15
+    blt     a1, a0, set_head_servo_notValidAngleForBase
+    j       set_head_servo_notValidAngleForBase
+
+  set_head_servo_notValidAngleForBase:
+    addi    a0, zero, -2
+    sw      a0, -12(s0)
+    j       set_head_servo_returnSetHeadServo
+
+  set_head_servo_notValidAngleForBase:
+    j       set_head_servo_setZeroForReturn
+
+  set_head_servo_checkIfItIsServoId1:
+    lw      a0, -16(s0)
+    addi    a1, zero, 1
+    bne     a0, a1, set_head_servo_checkIfItIsServoId2
+    j       set_head_servo_checkGreaterLimitForMid
+
+  set_head_servo_checkGreaterLimitForMid:
+    lw      a0, -20(s0)
+    addi    a1, zero, 90
+    blt     a1, a0, set_head_servo_notValidAngleForMid
+    j       set_head_servo_checkLowerLimitForMid
+    
+  set_head_servo_checkLowerLimitForMid:
+    lw      a0, -20(s0)
+    addi    a1, zero, 51
+    blt     a1, a0, set_head_servo_notValidAngleForTop:
+    j       set_head_servo_notValidAngleForMid
+
+  set_head_servo_notValidAngleForMid:
+    addi    a0, zero, -2
+    sw      a0, -12(s0)
+    j       set_head_servo_returnSetHeadServo
+
+  set_head_servo_checkIfItIsServoId2:
+    lw      a0, -16(s0)
+    addi    a1, zero, 2
+    bne     a0, a1, set_head_servo_notValidAngleForTop:
+    j       set_head_servo_checkGreaterLimitForMid
+
+  set_head_servo_checkGreaterLimitForMid:
+    lw      a0, -20(s0)
+    addi    a1, zero, 156
+    blt     a1, a0, set_head_servo_notValidAngleForTop
+    j       set_head_servo_checkLowerLimitForTop
+
+  set_head_servo_checkLowerLimitForTop:
+    lw      a0, -20(s0)
+    addi    a1, zero, -1
+    blt     a1, a0, set_head_servo_notValidAngleForTop:
+    j       set_head_servo_notValidAngleForTop
+
+  set_head_servo_notValidAngleForTop:
+    addi    a0, zero, -2
+    sw      a0, -12(s0)
+    j       set_head_servo_returnSetHeadServo
+
+  set_head_servo_notValidAngleForTop:
+    j       set_head_servo_setZeroForReturn
+
+  set_head_servo_setZeroForReturn:
+    mv      a0, zero
+    sw      a0, -12(s0)
+    j       set_head_servo_returnSetHeadServo
+
+  set_head_servo_notValidServoId:
+    addi    a0, zero, -1
+    sw      a0, -12(s0)
+    j       set_head_servo_returnSetHeadServo
+
+  set_head_servo_returnSetHeadServo:
+    lw      a0, -12(s0)
+    lw      s0, 24(sp)
+    lw      ra, 28(sp)
+    addi    sp, sp, 32
+    ret
+
