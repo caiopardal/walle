@@ -60,14 +60,19 @@ set_torque:
   sw ra, 0(sp)
   sw a0, 4(sp) # store a0 value
   sw a1, 8(sp) # store a1 value
+  li a0, 0
+  lw a1, 4(sp)
   jal set_engine_torque # call set_engine_torque with a0 value
-  lw a0, 8(sp)
+  li a0, 1
+  lw a1, 8(sp)
   jal set_engine_torque # call set_engine_torque with a1 value inside a0
+  lw ra, 0(sp)
   lw a0, 4(sp) # pop a0 from stack
   lw a1, 8(sp) # pop a1 from stack
   addi sp, sp, 12
+  ret
 
-# args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
+# args -> a0: Valor do ID da engrenagem, a1: Valor do torque da engrenagem
 # return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
 .globl set_engine_torque
 set_engine_torque:
