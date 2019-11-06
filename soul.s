@@ -265,109 +265,45 @@ syscall_get_gyro_angles:
 
   j int_handler_restore_context
 
-# args -> a0: Valor do torque para a engrenagem 1, a1: Valor do torque para a engrenagem 2
-# return -> -1 in case one or more values are out of range / 0 in case both values are in range (the return is in the a0)
-syscall_set_torque:
-  addi sp, sp, -20
-  sw ra, 16(sp)
-  sw s0, 12(sp)
-  addi s0, sp, 32 # Create stack using s0 that will be the aux stack for this function
-  sw a0, -4(s0) # Store a0 variable into s0 stack
-  sw a1, -8(s0) # Store a1 variable into s0 stack
-  lw a0, -4(s0) 
-  addi a1, zero, 100 # Add 100 to a1 to compare with a0
-  blt a1, a0, syscall_set_torque_lessThanOneHundred1 # If a0's value is less than 100, branch to check if a1's value is lower too
-  j syscall_set_torque_compareWithMinusOneHundred1 
-
-  syscall_set_torque_compareWithMinusOneHundred1: 
-    lw a0, -4(s0)
-    addi a1, zero, -101    # Check if a0's value is less than -100
-    blt a1, a0, syscall_set_torque_returnZero # If it's then return 0
-    j syscall_set_torque_lessThanOneHundred
-
-  syscall_set_torque_lessThanOneHundred1:
-    lw a0, -8(s0)
-    addi a1, zero, 100   # Check if a1's value is less than 100
-    blt a1, a0, syscall_set_torque_returnMinusOne # If it's then return -1
-    j syscall_set_torque_compareWithMinusOneHundred2 
-
-  syscall_set_torque_compareWithMinusOneHundred2:
-    lw a0, -8(s0)
-    addi a1, zero, -101 
-    blt a1, a0, syscall_set_torque_returnZero # Check if a1's value is less than -100
-    j syscall_set_torque_returnMinusOne
-
-  syscall_set_torque_returnMinusOne:
-    addi a0, zero, -1 # Set -1 as function return parameter
-    sw a0, 0(s0)
-    j syscall_set_torque_returnSetTorque # Call return method for this function
-
-  syscall_set_torque_returnZero:
-    mv a0, zero # Set 0 as function return parameter
-    sw a0, 0(s0)
-    j syscall_set_torque_returnSetTorque # Call return method for this function
-
-  syscall_set_torque_returnSetTorque:
-    lw a0, 0(s0)
-    lw s0, 12(sp)
-    lw ra, 16(sp)
-    addi sp, sp, 20
-    
-    j int_handler_restore_context
-
-# args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
+# args -> a0: Valor do ID da engrenagem, a1: Valor do torque da engrenagem
 # return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
 syscall_set_engine_torque:
-  addi sp, sp, -20
-  sw ra, 16(sp)
-  sw s0, 12(sp)
-  addi s0, sp, 20 # Create stack using s0 that will be the aux stack for this function
-  sw a0, -4(s0) # Store a0 variable into s0 stack
-  sw a1, -8(s0) # Store a1 variable into s0 stack
-  lw a0, -8(s0)
-  addi a1, zero, 100 # Add 100 to a1 to compare with a0
-  blt a1, a0, syscall_set_engine_torque_lessThanOneHundred # If a0's value is less than 100, branch to check if a1's value is lower too
+  mv t2, a1 # moving the torque value to t2
+  addi t3, zero, 100 # Add 100 to a1 to compare with a0
+  blt t3, t2, syscall_set_engine_torque_lessThanOneHundred # If a0's value is less than 100, branch to check if a1's value is lower too
   j syscall_set_engine_torque_compareWithMinusOneHundred
 
   syscall_set_engine_torque_compareWithMinusOneHundred:
-    lw a0, -8(s0)
-    addi a1, zero, -101 # Check if a0's value is less than -100
-    blt a1, a0, syscall_set_engine_torque_lessThanMinusOneHundred # If it's than return -1
+    addi t3, zero, -101 # Check if a0's value is less than -100
+    blt t3, t2, syscall_set_engine_torque_lessThanMinusOneHundred # If it's than return -1
     j syscall_set_engine_torque_lessThanOneHundred
 
   syscall_set_engine_torque_lessThanOneHundred:
-    addi a0, zero, -1
-    sw a0, 0(s0)
+    addi t3, zero, -1
+    sw a0, t3
     j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   syscall_set_engine_torque_lessThanMinusOneHundred:
-    lw a0, -4(s0)
-    addi a1, zero, 1 # Check if engine_id is 1
-    bne a0, a1, syscall_set_engine_torque_notEqualToOne # If it's not equal to one, return -2
+    addi t3, zero, 1 # Check if engine_id is 1
+    bne a0, t3, syscall_set_engine_torque_notEqualToOne # If it's not equal to one, return -2
     j syscall_set_engine_torque_equalsZero
 
   syscall_set_engine_torque_equalsZero:
-    lw a0, -4(s0)
-    mv a1, zero
-    beq a0, a1, syscall_set_engine_torque_returnFromEqualsZero # If it's equal to zero, return 0
+    mv t3, zero
+    beq a0, t3, syscall_set_engine_torque_returnFromEqualsZero # If it's equal to zero, return 0
     j syscall_set_engine_torque_notEqualToOne
 
   syscall_set_engine_torque_notEqualToOne:
-    addi a0, zero, -2 # Set -2 as function return parameter
-    sw a0, 0(s0)
+    addi t3, zero, -2 # Set -2 as function return parameter
+    sw a0, t3
     j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   syscall_set_engine_torque_returnFromEqualsZero:
-    mv a0, zero # Set 0 as function return parameter
-    sw a0, 0(s0)
+    mv t3, zero # Set 0 as function return parameter
+    sw a0, t3
     j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   syscall_set_engine_torque_returnSetEngineTorque:
-    lw a0, 0(s0)
-    lw s0, 12(sp)
-    lw ra, 16(sp)
-    addi sp, sp, 20
-    
     j int_handler_restore_context
 
 # args -> none
@@ -395,123 +331,100 @@ syscall_get_us_distance:
 # args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
 # return -> -1 in case the servo id is invalid / -2 in case the servo angle is invalid / 0 in case the servo id and the angle is valid (the return is in the a0)
 syscall_set_head_servo:
-  addi sp, sp, -20 
-  sw ra, 16(sp) # Add ra into stack
-  sw s0, 12(sp) # Create stack using s0 that will be the aux stack for this function
-  addi s0, sp, 20
-  sw a0, -4(s0)
-  sw a1, -8(s0)
-  lw a0, -4(s0)
-  mv a1, zero
-  beq a0, a1, syscall_set_head_servo_validServoId0 # Check if servo_id is 0
+  mv t3, zero
+  beq a0, t3, syscall_set_head_servo_validServoId0 # Check if servo_id is 0
   j syscall_set_head_servo_checkIfServoIs1
 
   syscall_set_head_servo_checkIfServoIs1:
-    lw a0, -4(s0)
-    addi a1, zero, 1
-    beq a0, a1, syscall_set_head_servo_validServoId0 # If it's then check angle's limit
+    addi t3, zero, 1
+    beq a0, t3, syscall_set_head_servo_validServoId0 # If it's then check angle's limit
     j syscall_set_head_servo_checkIfServoIs2
 
   syscall_set_head_servo_checkIfServoIs2:
-    lw a0, -4(s0)
-    addi a1, zero, 2 # Check if servo_id is 2
-    bne a0, a1, syscall_set_head_servo_notValidServoId # If it's not 0, 1 or 2 then return -1
+    addi t3, zero, 2 # Check if servo_id is 2
+    bne a0, t3, syscall_set_head_servo_notValidServoId # If it's not 0, 1 or 2 then return -1
     j syscall_set_head_servo_validServoId0
 
   syscall_set_head_servo_validServoId0:
-    lw a0, -4(s0)
-    mv a1, zero
-    bne a0, a1, syscall_set_head_servo_checkIfItIsServoId1 # Check if servo_id is 1
+    mv t3, zero
+    bne a0, t3, syscall_set_head_servo_checkIfItIsServoId1 # Check if servo_id is 1
     j syscall_set_head_servo_checkGreaterLimitForBase
 
   syscall_set_head_servo_checkGreaterLimitForBase:
-    lw a0, -8(s0)
-    addi a1, zero, 116 # Check greater limit for Base
-    blt a1, a0, syscall_set_head_servo_notValidAngleForBase # If it's not validAngle, return -2
+    addi t3, zero, 116 # Check greater limit for Base
+    blt t3, a1, syscall_set_head_servo_notValidAngleForBase # If it's not validAngle, return -2
     j syscall_set_head_servo_checkLowerLimitForBase
 
-  syscall_set_head_servo_checkLowerLimitForBase:
-    lw a0, -8(s0)
-    addi a1, zero, 15 # Check lower limit for Base
-    blt a1, a0, syscall_set_head_servo_validAngleForBase # If it's a validAngle, return 0
+  syscall_set_head_servo_checkLowerLimitForBas
+    addi t3, zero, 15 # Check lower limit for Base
+    blt t3, a1, syscall_set_head_servo_validAngleForBase # If it's a validAngle, return 0
     j syscall_set_head_servo_notValidAngleForBase
 
   syscall_set_head_servo_notValidAngleForBase:
-    addi a0, zero, -2 # Set -2 as function return parameter
-    sw a0, 0(s0)
+    addi t3, zero, -2 # Set -2 as function return parameter
+    sw a0, t3
     j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
 
   syscall_set_head_servo_validAngleForBase:
     j syscall_set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
 
   syscall_set_head_servo_checkIfItIsServoId1:
-    lw a0, -4(s0)
-    addi a1, zero, 1
-    bne a0, a1, syscall_set_head_servo_checkIfItIsServoId2
+    addi t3, zero, 1
+    bne a0, t3, syscall_set_head_servo_checkIfItIsServoId2
     j syscall_set_head_servo_checkGreaterLimitForMid
 
   syscall_set_head_servo_checkGreaterLimitForMid:
-    lw a0, -8(s0)
-    addi a1, zero, 90 # Check greater limit for Mid
-    blt a1, a0, syscall_set_head_servo_notValidAngleForMid
+    addi t3, zero, 90 # Check greater limit for Mid
+    blt t3, a1, syscall_set_head_servo_notValidAngleForMid
     j syscall_set_head_servo_checkLowerLimitForMid
-    
+
   syscall_set_head_servo_checkLowerLimitForMid:
-    lw a0, -8(s0)
-    addi a1, zero, 51 # Check lower limit for Mid
-    blt a1, a0, syscall_set_head_servo_validAngleForTop # If it's a validAngle, return 0
+    addi t3, zero, 51 # Check lower limit for Mid
+    blt t3, a1, syscall_set_head_servo_validAngleForTop # If it's a validAngle, return 0
     j syscall_set_head_servo_notValidAngleForMid
 
   syscall_set_head_servo_notValidAngleForMid:
-    addi a0, zero, -2  # Set -2 as function return parameter
-    sw a0, 0(s0)
+    addi t3, zero, -2  # Set -2 as function return parameter
+    sw a0, t3
     j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
 
   syscall_set_head_servo_validAngleForMid:
     j syscall_set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
 
   syscall_set_head_servo_checkIfItIsServoId2:
-    lw a0, -4(s0)
-    addi a1, zero, 2
-    bne a0, a1, syscall_set_head_servo_notValidAngleForTop # If it's not validAngle, return -2
+    addi t3, zero, 2
+    bne a0, t3, syscall_set_head_servo_notValidAngleForTop # If it's not validAngle, return -2
     j syscall_set_head_servo_checkGreaterLimitForMid
 
   syscall_set_head_servo_checkGreaterLimitForMid:
-    lw a0, -8(s0)
-    addi a1, zero, 156 # Check greater limit for Top
-    blt a1, a0, syscall_set_head_servo_notValidAngleForTop # If it's not validAngle, return -2
+    addi t3, zero, 156 # Check greater limit for Top
+    blt t3, a1, syscall_set_head_servo_notValidAngleForTop # If it's not validAngle, return -2
     j syscall_set_head_servo_checkLowerLimitForTop
 
   syscall_set_head_servo_checkLowerLimitForTop:
-    lw a0, -8(s0)
-    addi a1, zero, -1 # Check lower limit for Top
-    blt a1, a0, syscall_set_head_servo_validAngleForTop # If it's a validAngle, return 0
+    addi t3, zero, -1 # Check lower limit for Top
+    blt t3, a1, syscall_set_head_servo_validAngleForTop # If it's a validAngle, return 0
     j syscall_set_head_servo_notValidAngleForTop
 
   syscall_set_head_servo_notValidAngleForTop:
-    addi a0, zero, -2 # Set -2 as function return parameter
-    sw a0, 0(s0)
+    addi t3, zero, -2 # Set -2 as function return parameter
+    sw a0, t3
     j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
 
   syscall_set_head_servo_validAngleForTop:
     j syscall_set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
 
   syscall_set_head_servo_setZeroForReturn:
-    mv a0, zero
-    sw a0, 0(s0)
+    mv t3, zero
+    sw a0, t3)
     j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
 
   syscall_set_head_servo_notValidServoId:
-    addi a0, zero, -1
-    sw a0, 0(s0)
+    addi t3, zero, -1
+    sw a0, t3
     j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
 
   syscall_set_head_servo_returnSetHeadServo:
-    lw a0, 0(s0)
-    lw s0, 12(sp)
-    lw ra, 16(sp)
-    addi sp, sp, 20
-    
     j int_handler_restore_context
 
 .data
@@ -530,4 +443,8 @@ syscall_set_head_servo:
 .equ peripheral_ultrasonic_status, 0xFFFF0020
 .equ peripheral_ultrasonic_value, 0xFFFF0024
 machine_time: .skip 4
+<<<<<<< HEAD
 machine_stack: .comm 1000
+=======
+machine_stack:
+>>>>>>> refactoring syscalls
