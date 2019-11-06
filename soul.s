@@ -28,8 +28,7 @@ _start:
 	csrw mstatus, t1
 
   # activating the GPT
-  la t1, peripheral_gpt_1
-  lw t1, 0(t1)
+  li t1, peripheral_gpt_1
   lw t1, 0(t1)
   li t2, 1 # interrupt every 1 milisseconds
   sw t2, 0(t1) 
@@ -98,13 +97,13 @@ int_handler:
   sw t2, 0(t1)
  
   # flagging that the GPT interruption has already been handled
-  la t1, peripheral_gpt_2
+  li t1, peripheral_gpt_2
   lw t1, 0(t1)
   li t2, 0 # interruption flag bit, set "false"
   sb t2, 0(t1) 
   
   # activating the GPT
-  la t1, peripheral_gpt_1
+  li t1, peripheral_gpt_1
   lw t1, 0(t1)
   li t2, 1 # interrupt every 1 milisseconds
   sw t2, 0(t1) 
@@ -195,34 +194,29 @@ syscall_set_time:
 # return -> void (the return is in the a0)
 syscall_read_gps:
   # starting the position calculation in the peripheral
-  la t1, peripheral_gps_status
-  lw t1, 0(t1)
+  li t1, peripheral_gps_status # loading the macro
   li t2, 0
   sw t2, 0(t1)
 
   # loop until the peripheral_gps finish the calcucation of the current position 
   syscall_read_gps_status_loop:
     li t2, 1
-    la t1, peripheral_gps_status
-    lw t1, 0(t1)
+    li t1, peripheral_gps_status
     lw t1, 0(t1)
     bne t1, t2, syscall_read_gps_status_loop
 
   # grabs the x position
-  la t1, peripheral_gps_x
-  lw t1, 0(t1) # the reason that I `lw` two times is because 'peripheral_gps_x' stores the address of the peripheral, not the peripheral itself
-  lw t1, 0(t1)
+  li t1, peripheral_gps_x
+  lw t1, 0(t1) 
   sw t1, 0(a0)
 
   # grabs the y position
-  la t1, peripheral_gps_y
-  lw t1, 0(t1)
+  li t1, peripheral_gps_y
   lw t1, 0(t1)
   sw t1, 4(a0)
 
   # grabs the z position
-  la t1, peripheral_gps_z
-  lw t1, 0(t1)
+  li t1, peripheral_gps_z
   lw t1, 0(t1)
   sw t1, 8(a0)
 
@@ -232,7 +226,7 @@ syscall_read_gps:
 # return -> void
 syscall_get_gyro_angles:
   # starting the rotation calculation in the peripheral
-  la t1, peripheral_gps_status
+  li t1, peripheral_gps_status
   lw t1, 0(t1)
   li t2, 0
   sw t2, 0(t1)
@@ -240,14 +234,12 @@ syscall_get_gyro_angles:
   # loop until the peripheral_gps finish the calcucation of the current position 
   syscall_get_gyro_angles_loop:
     li t2, 1
-    la t1, peripheral_gps_status
-    lw t1, 0(t1)
+    li t1, peripheral_gps_status
     lw t1, 0(t1)
     bne t1, t2, syscall_get_gyro_angles_loop
   
   # grabs the x angle
-  la t1, peripheral_gyro_xyz
-  lw t1, 2(t1)
+  li t1, peripheral_gyro_xyz
   lw t1, 2(t1)
   mv t2, t1
   srli t0, t1, 20
@@ -379,7 +371,7 @@ syscall_set_engine_torque:
 # return -> a0: distance of nearest object within the detection range, in centimeters.
 syscall_get_us_distance:
   # starting the rotation calculation in the peripheral
-  la t1, peripheral_ultrasonic_status
+  li t1, peripheral_ultrasonic_status
   lw t1, 0(t1)
   li t2, 0
   sw t2, 0(t1)
@@ -387,17 +379,14 @@ syscall_get_us_distance:
   # loop until the peripheral_ultrasonic finishes reading the value returned by the ultrasound sensor in centimeters
   syscall_get_us_distance:
     li t2, 1
-    la t1, peripheral_gps_status
-    lw t1, 0(t1)
+    li t1, peripheral_gps_status
     lw t1, 0(t1)
     bne t1, t2, syscall_get_us_distance_loop
   
   # grabs the value returned by the ultrasound sensor in centimeters
-  la t1, peripheral_ultrasonic_value
+  li t1, peripheral_ultrasonic_value
   lw t1, 0(t1) # the reason that I `lw` two times is because 'peripheral_ultrasonic_value' stores the address of the peripheral, not the peripheral itself
-  lw t1, 0(t1)
   sw t1, 0(a0)
-  //TOCHECK See if I need to treat an exception here for the value -1 or I just send it anyway here and we check it at loco.c
 
   j int_handler_restore_context
 
@@ -524,19 +513,19 @@ syscall_set_head_servo:
     j int_handler_restore_context
 
 .data
-peripheral_gps_status: .word 0xFFFF0004
-peripheral_gps_x: .word 0xFFFF0008
-peripheral_gps_y: .word 0xFFFF000C
-peripheral_gps_z: .word 0xFFFF0010
-peripheral_gyro_xyz: .word 0xFFFF0014
-peripheral_gpt_1: .word 0xFFFF0100 # GPT register responsible for interrupting every "x" milisseconds, size: word
-peripheral_gpt_2: .word 0xFFFF0104 # GPT register that flags if the interruption is already resolved, size: byte
-peripheral_torque_motor1: .word 0xFFFF001A # The writing in this register sets the Uoli motor 1 torque to Nm (Newton meters), size: half
-peripheral_torque_motor2: .word 0xFFFF0018 # The writing in this register sets the Uoli motor 2 torque to N m (Newton meters), size: half
-peripheral_servo_base: .word 0xFFFF001C # The writing in this register sets the servo motor angle 1 (base) to degrees value, size: byte
-peripheral_servo_mid: .word 0xFFFF001D # The writing in this register sets the servo motor angle 2 (mid) to degrees value, size: byte
-peripheral_servo_top: .word 0xFFFF0104 # The writing in this register sets the servo motor angle 3 (top) to degrees value, size: byte
-peripheral_ultrasonic_status: .word 0xFFFF0020
-peripheral_ultrasonic_value: .word 0xFFFF0024
+.equ peripheral_gps_status, 0xFFFF0004
+.equ peripheral_gps_x, 0xFFFF0008
+.equ peripheral_gps_y, 0xFFFF000C
+.equ peripheral_gps_z, 0xFFFF0010
+.equ peripheral_gyro_xyz, 0xFFFF0014
+.equ peripheral_gpt_1, 0xFFFF0100 # GPT register responsible for interrupting every "x" milisseconds, size: word
+.equ peripheral_gpt_2, 0xFFFF0100 # GPT register that flags if the interruption is already resolved, size: byte
+.equ peripheral_torque_motor_1, 0xFFFF001A # writing in this register sets the Uoli motor 1 torque to Nm (Newton meters), size: half
+.equ peripheral_torque_motor2, 0xFFFF0018 # writing in this register sets the Uoli motor 2 torque to N m (Newton meters), size: half
+.equ peripheral_servo_base, 0xFFFF001C # writing in this register sets the servo motor angle 1 (base) in degrees value, size: byte
+.equ peripheral_servo_mid, 0xFFFF001D # writing in this register sets the servo motor angle 2 (mid) in degrees value, size: byte
+.equ peripheral_servo_top, 0xFFFF0104 # writing in this register sets the servo motor angle 3 (top) in degrees value, size: byte
+.equ peripheral_ultrasonic_status, 0xFFFF0020
+.equ peripheral_ultrasonic_value, 0xFFFF0024
 machine_time: .skip 4
-machine_stack:
+machine_stack: 
