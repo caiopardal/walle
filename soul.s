@@ -29,8 +29,7 @@ _start:
 
   # activating the GPT
   li t1, peripheral_gpt_1
-  lw t1, 0(t1)
-  li t2, 1 # interrupt every 1 milisseconds
+  li t2, 100 # interrupt every 100 milisseconds
   sw t2, 0(t1) 
 
   # initializing timer with 0
@@ -80,6 +79,7 @@ int_handler:
   sw gp, 108(a0)
   sw sp, 112(a0)
   sw ra, 116(a0)
+  addi a0, a0, 120
   csrrw a0, mscratch, a0
   
   # decode the interruption cause
@@ -90,24 +90,27 @@ int_handler:
   li a2, 7 # a2 = interrupção do timer
   bne a1, a2, int_handler_restore_context # desvia se não for interrupção do temporizador da máquina
   
-  # handling the GPT interruption, incrementing the clock
-  la t1, machine_stack
-  lw t2, 0(t1)
-  addi t2, t2, 1
-  sw t2, 0(t1)
- 
-  # flagging that the GPT interruption has already been handled
-  li t1, peripheral_gpt_2
-  lw t1, 0(t1)
-  li t2, 0 # interruption flag bit, set "false"
-  sb t2, 0(t1) 
+  int_handler_clock:
+    # handling the GPT interruption, incrementing the clock
+    la t1, machine_time
+    lw t2, 0(t1)
+    addi t2, t2, 100
+    sw t2, 0(t1)
   
-  # activating the GPT
-  li t1, peripheral_gpt_1
-  lw t1, 0(t1)
-  li t2, 1 # interrupt every 1 milisseconds
-  sw t2, 0(t1) 
-  j int_handler_restore_context
+    # flagging that the GPT interruption has already been handled
+    li t1, peripheral_gpt_2
+    lw t3, 0(t1)
+    li t4, 0
+    beq t3, t4, int_handler_restore_context # check if is a delay input problem 
+    
+    li t2, 0 # interruption flag bit, set "false"
+    sb t2, 0(t1) 
+    
+    # activating the GPT
+    li t1, peripheral_gpt_1
+    li t2, 100 # interrupt every 100 milisseconds
+    sw t2, 0(t1) 
+    j int_handler_restore_context
 
   int_handler_exception: 
     # "switch case" until found the syscall code requested  
@@ -137,36 +140,37 @@ int_handler:
 
   int_handler_restore_context:
     csrrw a0, mscratch, a0
-    lw a1, 0(a0)
-    lw a2, 4(a0) 
-    lw a3, 8(a0) 
-    lw a4, 12(a0) 
-    lw a5, 16(a0)
-    lw a6, 20(a0)
-    lw a7, 24(a0)
-    lw fp, 28(a0) 
-    lw s1, 32(a0)
-    lw s2, 36(a0)
-    lw s3, 40(a0)
-    lw s4, 44(a0)
-    lw s5, 48(a0)
-    lw s6, 52(a0)
-    lw s7, 56(a0)
-    lw s8, 60(a0)
-    lw s9, 64(a0)
-    lw s10, 68(a0)
-    lw s11, 72(a0)
-    lw t0, 76(a0)
-    lw t1, 80(a0)
-    lw t2, 84(a0)
-    lw t3, 88(a0)
-    lw t4, 92(a0)
-    lw t5, 96(a0)
-    lw t6, 100(a0)
-    lw tp, 104(a0) 
-    lw gp, 108(a0)
-    lw sp, 112(a0)
-    lw ra, 116(a0)
+    lw ra, 0(a0)
+    lw sp, 4(a0)
+    lw gp, 8(a0)
+    lw tp, 12(a0) 
+    lw t6, 16(a0)
+    lw t5, 20(a0)
+    lw t4, 24(a0)
+    lw t3, 28(a0)
+    lw t2, 32(a0)
+    lw t1, 36(a0)
+    lw t0, 40(a0)
+    lw s11, 44(a0)
+    lw s10, 48(a0)
+    lw s9, 52(a0)
+    lw s8, 56(a0)
+    lw s7, 60(a0)
+    lw s6, 64(a0)
+    lw s5, 68(a0)
+    lw s4, 72(a0)
+    lw s3, 76(a0)
+    lw s2, 80(a0)
+    lw s1, 84(a0)
+    lw fp, 88(a0) 
+    lw a7, 92(a0)
+    lw a6, 96(a0)
+    lw a5, 100(a0)
+    lw a4, 104(a0) 
+    lw a3, 108(a0) 
+    lw a2, 112(a0) 
+    lw a1, 116(a0)
+    addi a0, a0, -120
     csrrw a0, mscratch, a0
 
     mret 
@@ -227,7 +231,6 @@ syscall_read_gps:
 syscall_get_gyro_angles:
   # starting the rotation calculation in the peripheral
   li t1, peripheral_gps_status
-  lw t1, 0(t1)
   li t2, 0
   sw t2, 0(t1)
 
@@ -372,7 +375,6 @@ syscall_set_engine_torque:
 syscall_get_us_distance:
   # starting the rotation calculation in the peripheral
   li t1, peripheral_ultrasonic_status
-  lw t1, 0(t1)
   li t2, 0
   sw t2, 0(t1)
 
@@ -528,4 +530,4 @@ syscall_set_head_servo:
 .equ peripheral_ultrasonic_status, 0xFFFF0020
 .equ peripheral_ultrasonic_value, 0xFFFF0024
 machine_time: .skip 4
-machine_stack: 
+machine_stack: .comm 1000
