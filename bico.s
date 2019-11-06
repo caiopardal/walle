@@ -90,6 +90,15 @@ set_engine_torque:
   
   ret
 
+# args -> none
+# return -> a0: distance of nearest object within the detection range, in centimeters.
+.globl get_us_distance
+get_us_distance:
+  li a7, 16
+  ecall
+
+  ret
+
 # args -> a0: Endereço do registro (com três valores inteiros) para armazenar as coordenadas (x, y, z);
 # return -> void (the return is in the a0)
 .globl get_current_GPS_position

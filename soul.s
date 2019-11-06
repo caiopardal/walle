@@ -111,7 +111,10 @@ int_handler:
   j int_handler_restore_context
 
   int_handler_exception: 
-    # "switch case" until found the syscall code requested
+    # "switch case" until found the syscall code requested  
+    li t1, 16
+    beq t1, a7, syscall_get_us_distance
+
     li t1, 17
     beq t1, a7, syscall_set_head_servo
 
@@ -372,6 +375,32 @@ syscall_set_engine_torque:
     
     j int_handler_restore_context
 
+# args -> none
+# return -> a0: distance of nearest object within the detection range, in centimeters.
+syscall_get_us_distance:
+  # starting the rotation calculation in the peripheral
+  la t1, peripheral_ultrasonic_status
+  lw t1, 0(t1)
+  li t2, 0
+  sw t2, 0(t1)
+
+  # loop until the peripheral_ultrasonic finishes reading the value returned by the ultrasound sensor in centimeters
+  syscall_get_us_distance:
+    li t2, 1
+    la t1, peripheral_gps_status
+    lw t1, 0(t1)
+    lw t1, 0(t1)
+    bne t1, t2, syscall_get_us_distance_loop
+  
+  # grabs the value returned by the ultrasound sensor in centimeters
+  la t1, peripheral_ultrasonic_value
+  lw t1, 0(t1) # the reason that I `lw` two times is because 'peripheral_ultrasonic_value' stores the address of the peripheral, not the peripheral itself
+  lw t1, 0(t1)
+  sw t1, 0(a0)
+  //TOCHECK See if I need to treat an exception here for the value -1 or I just send it anyway here and we check it at loco.c
+
+  j int_handler_restore_context
+
 # args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
 # return -> -1 in case the servo id is invalid / -2 in case the servo angle is invalid / 0 in case the servo id and the angle is valid (the return is in the a0)
 syscall_set_head_servo:
@@ -507,5 +536,7 @@ peripheral_torque_motor2: .word 0xFFFF0018 # The writing in this register sets t
 peripheral_servo_base: .word 0xFFFF001C # The writing in this register sets the servo motor angle 1 (base) to degrees value, size: byte
 peripheral_servo_mid: .word 0xFFFF001D # The writing in this register sets the servo motor angle 2 (mid) to degrees value, size: byte
 peripheral_servo_top: .word 0xFFFF0104 # The writing in this register sets the servo motor angle 3 (top) to degrees value, size: byte
+peripheral_ultrasonic_status: .word 0xFFFF0020
+peripheral_ultrasonic_value: .word 0xFFFF0024
 machine_time: .skip 4
 machine_stack:
