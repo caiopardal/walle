@@ -112,6 +112,12 @@ int_handler:
 
   int_handler_exception: 
     # "switch case" until found the syscall code requested
+    li t1, 17
+    beq t1, a7, syscall_set_head_servo
+
+    li t1, 18
+    beq t1, a7, syscall_set_engine_torque
+
     li t1, 19
     beq t1, a7, syscall_read_gps
 
@@ -187,7 +193,7 @@ syscall_read_gps:
 
   # grabs the x position
   la t1, peripheral_gps_x
-  lw t1, 0(t1) # the reason that I `lw` two time is because 'peripheral_gps_x' stores the address of the peripheral, not the peripheral itself
+  lw t1, 0(t1) # the reason that I `lw` two times is because 'peripheral_gps_x' stores the address of the peripheral, not the peripheral itself
   lw t1, 0(t1)
   sw t1, 0(a0)
 
@@ -252,7 +258,8 @@ syscall_set_torque:
     lw s0, 12(sp)
     lw ra, 16(sp)
     addi sp, sp, 20
-    ret
+    
+    j int_handler_restore_context
 
 # args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
 # return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
@@ -306,7 +313,8 @@ syscall_set_engine_torque:
     lw s0, 12(sp)
     lw ra, 16(sp)
     addi sp, sp, 20
-    ret
+    
+    j int_handler_restore_context
 
 # args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
 # return -> -1 in case the servo id is invalid / -2 in case the servo angle is invalid / 0 in case the servo id and the angle is valid (the return is in the a0)
@@ -427,7 +435,8 @@ syscall_set_head_servo:
     lw s0, 12(sp)
     lw ra, 16(sp)
     addi sp, sp, 20
-    ret
+    
+    j int_handler_restore_context
 
 .data
 peripheral_gps_status: .word 0xFFFF0004
