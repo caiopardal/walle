@@ -502,5 +502,10 @@ peripheral_gps_z: .word 0xFFFF0010
 peripheral_gyro_xyz: .word 0xFFFF0014
 peripheral_gpt_1: .word 0xFFFF0100 # GPT register responsible for interrupting every "x" milisseconds, size: word
 peripheral_gpt_2: .word 0xFFFF0104 # GPT register that flags if the interruption is already resolved, size: byte
+peripheral_torque_motor1: .word 0xFFFF001A # The writing in this register sets the Uoli motor 1 torque to Nm (Newton meters), size: half
+peripheral_torque_motor2: .word 0xFFFF0018 # The writing in this register sets the Uoli motor 2 torque to N m (Newton meters), size: half
+peripheral_servo_base: .word 0xFFFF001C # The writing in this register sets the servo motor angle 1 (base) to degrees value, size: byte
+peripheral_servo_mid: .word 0xFFFF001D # The writing in this register sets the servo motor angle 2 (mid) to degrees value, size: byte
+peripheral_servo_top: .word 0xFFFF0104 # The writing in this register sets the servo motor angle 3 (top) to degrees value, size: byte
 machine_time: .skip 4
 machine_stack:
