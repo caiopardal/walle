@@ -29,7 +29,8 @@ _start:
 
   # activating the GPT
   la t1, peripheral_gpt_1
-  li t1, 0(t1)
+  lw t1, 0(t1)
+  lw t1, 0(t1)
   li t2, 1 # interrupt every 1 milisseconds
   sw t2, 0(t1) 
 
@@ -84,32 +85,40 @@ int_handler:
   
   # decode the interruption cause
   csrr a1, mcause # lê a causa da exceção
-  bgez a1, exception # desvia se não for uma interrupção
+  bgez a1, int_handler_exception # desvia se não for uma interrupção
   
   andi a1, a1, 0x3f # isola a causa de interrupção
   li a2, 7 # a2 = interrupção do timer
   bne a1, a2, int_handler_restore_context # desvia se não for interrupção do temporizador da máquina
   
-  # handling the GPT interruption
+  # handling the GPT interruption, incrementing the clock
   la t1, machine_stack
-  li t1, 0(t1)
-  addi t1, t1, 1
+  lw t2, 0(t1)
+  addi t2, t2, 1
+  sw t2, 0(t1)
  
   # flagging that the GPT interruption has already been handled
   la t1, peripheral_gpt_2
-  li t1, 0(t1)
+  lw t1, 0(t1)
   li t2, 0 # interruption flag bit, set "false"
   sb t2, 0(t1) 
   
   # activating the GPT
   la t1, peripheral_gpt_1
-  li t1, 0(t1)
+  lw t1, 0(t1)
   li t2, 1 # interrupt every 1 milisseconds
   sw t2, 0(t1) 
   j int_handler_restore_context
 
   int_handler_exception: 
-    # TODO: implementar o tratamento das SysCallss
+    # "switch case" until found the syscall code requested
+    li t1, 19
+    beq t1, a7, syscall_read_gps
+
+    li t1, 21
+    beq t1, a7, syscall_get_time
+
+    # not a syscall, return anyway
     j int_handler_restore_context
 
   int_handler_restore_context:
@@ -149,6 +158,52 @@ int_handler:
     mret 
 
 ########### Syscalls implementation ###########
+
+# args -> none
+# return -> a0: tempo do sistema em milisegundos;
+syscall_get_time:
+  la t1, machine_time
+  lw t1, 0(t1)
+  mv a0, t1
+
+  j int_handler_restore_context
+
+# args -> a0: Endereço do registro (com três valores inteiros) para armazenar as coordenadas (x, y, z);
+# return -> void (the return is in the a0)
+syscall_read_gps:
+  # starting the position calculation in the peripheral
+  la t1, peripheral_gps_status
+  lw t1, 0(t1)
+  li t2, 0
+  sw t2, 0(t1)
+
+  # loop until the peripheral_gps finish the calcucation of the current position 
+  syscall_read_gps_status_loop:
+    li t2, 1
+    la t1, peripheral_gps_status
+    lw t1, 0(t1)
+    lw t1, 0(t1)
+    bne t1, t2, syscall_read_gps_status_loop
+
+  # grabs the x position
+  la t1, peripheral_gps_x
+  lw t1, 0(t1) # the reason that I `lw` two time is because 'peripheral_gps_x' stores the address of the peripheral, not the peripheral itself
+  lw t1, 0(t1)
+  sw t1, 0(a0)
+
+  # grabs the y position
+  la t1, peripheral_gps_y
+  lw t1, 0(t1)
+  lw t1, 0(t1)
+  sw t1, 4(a0)
+
+  # grabs the z position
+  la t1, peripheral_gps_z
+  lw t1, 0(t1)
+  lw t1, 0(t1)
+  sw t1, 8(a0)
+
+  j int_handler_restore_context
 
 # args -> a0: Valor do torque para a engrenagem 1, a1: Valor do torque para a engrenagem 2
 # return -> -1 in case one or more values are out of range / 0 in case both values are in range (the return is in the a0)
@@ -374,9 +429,12 @@ syscall_set_head_servo:
     addi sp, sp, 20
     ret
 
+.data
+peripheral_gps_status: .word 0xFFFF0004
+peripheral_gps_x: .word 0xFFFF0008
+peripheral_gps_y: .word 0xFFFF000C
+peripheral_gps_z: .word 0xFFFF0010
 peripheral_gpt_1: .word 0xFFFF0100 # GPT register responsible for interrupting every "x" milisseconds, size: word
 peripheral_gpt_2: .word 0xFFFF0104 # GPT register that flags if the interruption is already resolved, size: byte
 machine_time: .skip 4
 machine_stack:
-
-
