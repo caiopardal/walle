@@ -72,15 +72,6 @@ set_torque:
   addi sp, sp, 12
   ret
 
-# args -> a0: Valor do ID da engrenagem, a1: Valor do torque da engrenagem
-# return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
-.globl set_engine_torque
-set_engine_torque:
-  li a7, 18
-  ecall
-  
-  ret
-
 # args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
 # return -> -1 in case the servo id is invalid / -2 in case the servo angle is invalid / 0 in case the servo id and the angle is valid (the return is in the a0)
 .globl set_head_servo
@@ -88,6 +79,15 @@ set_head_servo:
   li a7, 17
   ecall
 
+  ret
+
+# args -> a0: Valor do ID da engrenagem, a1: Valor do torque da engrenagem
+# return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
+.globl set_engine_torque
+set_engine_torque:
+  li a7, 18
+  ecall
+  
   ret
 
 # args -> a0: Endereço do registro (com três valores inteiros) para armazenar as coordenadas (x, y, z);

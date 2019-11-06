@@ -121,8 +121,14 @@ int_handler:
     li t1, 19
     beq t1, a7, syscall_read_gps
 
+    li t1, 20
+    beq t1, a7, syscall_get_gyro_angles
+
     li t1, 21
     beq t1, a7, syscall_get_time
+
+    li t1, 22
+    beq t1, a7, syscall_set_time
 
     # not a syscall, return anyway
     j int_handler_restore_context
@@ -174,6 +180,14 @@ syscall_get_time:
 
   j int_handler_restore_context
 
+# args -> a0: tempo do sistema, em milisegundos 
+# return -> none
+syscall_set_time:
+  la t1, machine_time
+  sw a0, 0(t1)
+
+  j int_handler_restore_context
+
 # args -> a0: Endereço do registro (com três valores inteiros) para armazenar as coordenadas (x, y, z);
 # return -> void (the return is in the a0)
 syscall_read_gps:
@@ -208,6 +222,48 @@ syscall_read_gps:
   lw t1, 0(t1)
   lw t1, 0(t1)
   sw t1, 8(a0)
+
+  j int_handler_restore_context
+
+# args -> a0: Endereço do registro (com três valores inteiros) para armazenar os ângulos de Euler (x, y, z);
+# return -> void
+syscall_get_gyro_angles:
+  # starting the rotation calculation in the peripheral
+  la t1, peripheral_gps_status
+  lw t1, 0(t1)
+  li t2, 0
+  sw t2, 0(t1)
+
+  # loop until the peripheral_gps finish the calcucation of the current position 
+  syscall_get_gyro_angles_loop:
+    li t2, 1
+    la t1, peripheral_gps_status
+    lw t1, 0(t1)
+    lw t1, 0(t1)
+    bne t1, t2, syscall_get_gyro_angles_loop
+  
+  # grabs the x angle
+  la t1, peripheral_gyro_xyz
+  lw t1, 2(t1)
+  lw t1, 2(t1)
+  mv t2, t1
+  srli t0, t1, 20
+  mv a1, t0
+  sw a1, 2(a0)
+
+  # grabs the y angle
+  mv t1, t2
+  slli t0, t1, 10
+  srli t0, t0, 20
+  mv a1, t0
+  sw a1, 12(a0)
+
+  # grabs the z angle
+  mv t1, t2
+  slli t0, t1, 10
+  srli t0, t0, 20
+  mv a1, t0
+  sw a1, 22(a0)
 
   j int_handler_restore_context
 
@@ -443,6 +499,7 @@ peripheral_gps_status: .word 0xFFFF0004
 peripheral_gps_x: .word 0xFFFF0008
 peripheral_gps_y: .word 0xFFFF000C
 peripheral_gps_z: .word 0xFFFF0010
+peripheral_gyro_xyz: .word 0xFFFF0014
 peripheral_gpt_1: .word 0xFFFF0100 # GPT register responsible for interrupting every "x" milisseconds, size: word
 peripheral_gpt_2: .word 0xFFFF0104 # GPT register that flags if the interruption is already resolved, size: byte
 machine_time: .skip 4
