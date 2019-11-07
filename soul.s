@@ -243,25 +243,25 @@ syscall_get_gyro_angles:
   
   # grabs the x angle
   li t1, peripheral_gyro_xyz
-  lw t1, 2(t1)
+  lw t1, 0(t1)
   mv t2, t1
-  srli t0, t1, 20
+  slli t0, t1, 22
   mv a1, t0
-  sw a1, 2(a0)
+  sw a1, 0(a0)
 
   # grabs the y angle
   mv t1, t2
-  slli t0, t1, 10
-  srli t0, t0, 20
+  srli t0, t1, 10
+  slli t0, t0, 22
   mv a1, t0
-  sw a1, 12(a0)
+  sw a1, 10(a0)
 
   # grabs the z angle
   mv t1, t2
-  slli t0, t1, 10
-  srli t0, t0, 20
+  srli t0, t1, 22
+  slli t0, t0, 22
   mv a1, t0
-  sw a1, 22(a0)
+  sw a1, 20(a0)
 
   j int_handler_restore_context
 
@@ -280,7 +280,7 @@ syscall_set_engine_torque:
 
   syscall_set_engine_torque_lessThanOneHundred:
     addi t3, zero, -1
-    sw a0, t3
+    sw t3, a0
     j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   syscall_set_engine_torque_lessThanMinusOneHundred:
@@ -295,13 +295,29 @@ syscall_set_engine_torque:
 
   syscall_set_engine_torque_notEqualToOne:
     addi t3, zero, -2 # Set -2 as function return parameter
-    sw a0, t3
+    sw t3, a0
     j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   syscall_set_engine_torque_returnFromEqualsZero:
-    mv t3, zero # Set 0 as function return parameter
-    sw a0, t3
+    li t4, 1
+    beq a0, t4, syscall_set_engine_torque_set_peripheral_for_1
+    li t4, 0
+    beq a0, t4, syscall_set_engine_torque_set_peripheral_for_0
     j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
+
+  syscall_set_engine_torque_set_peripheral_for_1:
+    li t1, peripheral_torque_motor_1
+    sw a1, 0(t1)
+    mv t3, zero # Set 0 as function return parameter
+    sw t3, a0
+    j syscall_set_engine_torque_returnSetEngineTorque
+  
+  syscall_set_engine_torque_set_peripheral_for_2:
+    li t1, peripheral_torque_motor_2
+    sw a1, 0(t1)
+    mv t3, zero # Set 0 as function return parameter
+    sw t3, a0
+    j syscall_set_engine_torque_returnSetEngineTorque
 
   syscall_set_engine_torque_returnSetEngineTorque:
     j int_handler_restore_context
@@ -362,10 +378,12 @@ syscall_set_head_servo:
 
   syscall_set_head_servo_notValidAngleForBase:
     addi t3, zero, -2 # Set -2 as function return parameter
-    sw a0, t3
+    sw t3, a0
     j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
 
   syscall_set_head_servo_validAngleForBase:
+    li t1, peripheral_servo_base
+    sw a1, 0(t1)
     j syscall_set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
 
   syscall_set_head_servo_checkIfItIsServoId1:
@@ -385,10 +403,12 @@ syscall_set_head_servo:
 
   syscall_set_head_servo_notValidAngleForMid:
     addi t3, zero, -2  # Set -2 as function return parameter
-    sw a0, t3
+    sw t3, a0
     j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
 
   syscall_set_head_servo_validAngleForMid:
+    li t1, peripheral_servo_mid
+    sw a1, 0(t1)
     j syscall_set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
 
   syscall_set_head_servo_checkIfItIsServoId2:
@@ -408,20 +428,22 @@ syscall_set_head_servo:
 
   syscall_set_head_servo_notValidAngleForTop:
     addi t3, zero, -2 # Set -2 as function return parameter
-    sw a0, t3
+    sw t3, a0
     j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
 
   syscall_set_head_servo_validAngleForTop:
+    li t1, peripheral_servo_top
+    sw a1, 0(t1)
     j syscall_set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
 
   syscall_set_head_servo_setZeroForReturn:
     mv t3, zero
-    sw a0, t3)
+    sw t3, a0
     j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
 
   syscall_set_head_servo_notValidServoId:
     addi t3, zero, -1
-    sw a0, t3
+    sw t3, a0
     j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
 
   syscall_set_head_servo_returnSetHeadServo:
@@ -443,8 +465,4 @@ syscall_set_head_servo:
 .equ peripheral_ultrasonic_status, 0xFFFF0020
 .equ peripheral_ultrasonic_value, 0xFFFF0024
 machine_time: .skip 4
-<<<<<<< HEAD
 machine_stack: .comm 1000
-=======
-machine_stack:
->>>>>>> refactoring syscalls
