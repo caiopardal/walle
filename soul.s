@@ -245,23 +245,22 @@ syscall_get_gyro_angles:
   li t1, peripheral_gyro_xyz
   lw t1, 0(t1)
   mv t2, t1
-  slli t0, t1, 22
-  mv a1, t0
-  sw a1, 0(a0)
+  mv t3, t1
+  srli t1, t1, 20
+  mv t4, a0
+  sw t4,0(t1)
 
   # grabs the y angle
-  mv t1, t2
-  srli t0, t1, 10
-  slli t0, t0, 22
-  mv a1, t0
-  sw a1, 10(a0)
+  slli t2, t2, 12 
+	srli t2, t2, 22
+  addi t5, t4, 4
+  sw t5, 0(t2)
 
   # grabs the z angle
-  mv t1, t2
-  srli t0, t1, 22
-  slli t0, t0, 22
-  mv a1, t0
-  sw a1, 20(a0)
+  slli t3, t3, 22
+	srli t3, t3, 22
+  addi t6, t4, 8
+  sw t6, 0(t3)
 
   j int_handler_restore_context
 
@@ -448,6 +447,12 @@ syscall_set_head_servo:
 
   syscall_set_head_servo_returnSetHeadServo:
     j int_handler_restore_context
+
+# args -> a0: Descritor do arquivo, a1: Endereço de memória do buffer a ser escrito, a2: Número de bytes a serem escritos;
+# return -> void (a0: Número de bytes efetivamente escritos ao final da função)
+syscall_puts:
+
+
 
 .data
 .equ peripheral_gps_status, 0xFFFF0004
