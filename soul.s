@@ -330,7 +330,7 @@ syscall_get_us_distance:
   sw t2, 0(t1)
 
   # loop until the peripheral_ultrasonic finishes reading the value returned by the ultrasound sensor in centimeters
-  syscall_get_us_distance:
+  syscall_get_us_distance_loop:
     li t2, 1
     li t1, peripheral_gps_status
     lw t1, 0(t1)
@@ -453,12 +453,12 @@ syscall_set_head_servo:
 syscall_puts:
   syscall_puts_loop_for_printing:
     li t3, peripheral_transmission_value_from_uart ## read value to be transmitted
-    lbu t5, 0(a1) # read the byte to be printed
+    lb t5, 0(a1) # read the byte to be printed
     sb t5, 0(t3)
 
     # starting the transmission of the string in the peripheral
     li t1, peripheral_transmission_from_uart # loading the macro
-    li t2, 0
+    li t2, 1
     sw t2, 0(t1)
 
     # loop until the peripheral_transmission_from_uart finish transmitting the next byte
@@ -469,7 +469,7 @@ syscall_puts:
       beq t1, t2, syscall_puts_loop_for_transmission
 
     addi a1, a1, 1 # advance to the next byte to be printed out
-    lbu t6, 0(a1)
+    lb t6, 0(a1)
     bne zero, t6, syscall_puts_loop_for_printing
 
   mv a0, a2 # move the number of actual bytes written to a0
