@@ -451,8 +451,29 @@ syscall_set_head_servo:
 # args -> a0: Descritor do arquivo, a1: Endereço de memória do buffer a ser escrito, a2: Número de bytes a serem escritos;
 # return -> void (a0: Número de bytes efetivamente escritos ao final da função)
 syscall_puts:
+  syscall_puts_loop_for_printing:
+    li t3, peripheral_transmission_value_from_uart ## read value to be transmitted
+    lbu t5, 0(a1) # read the byte to be printed
+    sb t5, 0(t3)
 
+    # starting the transmission of the string in the peripheral
+    li t1, peripheral_transmission_from_uart # loading the macro
+    li t2, 0
+    sw t2, 0(t1)
 
+    # loop until the peripheral_transmission_from_uart finish transmitting the next byte
+    syscall_puts_loop_for_transmission:
+      li t2, 1
+      li t1, peripheral_transmission_from_uart
+      lw t1, 0(t1)
+      beq t1, t2, syscall_puts_loop_for_transmission
+
+    addi a1, a1, 1 # advance to the next byte to be printed out
+    lbu t6, 0(a1)
+    bne zero, t6, syscall_puts_loop_for_printing
+
+  mv a0, a2 # move the number of actual bytes written to a0
+  j int_handler_restore_context
 
 .data
 .equ peripheral_gps_status, 0xFFFF0004
@@ -469,5 +490,10 @@ syscall_puts:
 .equ peripheral_servo_top, 0xFFFF0104 # writing in this register sets the servo motor angle 3 (top) in degrees value, size: byte
 .equ peripheral_ultrasonic_status, 0xFFFF0020
 .equ peripheral_ultrasonic_value, 0xFFFF0024
+.equ peripheral_transmission_from_uart, 0xFFFF0108 # When assigned a value of 1, UART begins transmitting the value stored at 0xFFFF0109
+.equ peripheral_transmission_value_from_uart, 0xFFFF0109 # Value to be transmitted by UART
+.equ peripheral_reception_value_from_uart, 0xFFFF010A # When assigned a value of 1, UART starts receiving a byte on input and stores it at 0xFFFF010B
+.equ peripheral_reception_value_from_uart, 0xFFFF010B	# Value received by UART.
+
 machine_time: .skip 4
 machine_stack: .comm 1000
