@@ -1,22 +1,19 @@
 #include "api_robot2.h"
 
-void turnBaseDirection (int direction) {
-  if (direction == 1) { // direction = counter-clockwise
-    set_engine_torque(1, 30); // turns the direction for walle's body
-  } else if (direction == 0) { // direction = clockwise
-    set_engine_torque(0, 30); // turns the direction for walle's body
-  }
-}
+// robot functions
+int detectObstacles();
+void bypassingObstacles(int direction);
+float currentDistance(Vector3 position);
+void turnBaseDirection (int direction);
 
-int detectObstacles () {
-  if (get_us_distance() != -1) { // if some distance is found, then there are obstacles
-    return 1;
-  }
+// utils functions
+float power(float x, int y);
+float squareRoot(float number);
 
-  return 0; // no obstacles
-}
 
-void bypassingObstacles (int direction) {
+/* robot functions here */
+
+void bypassingObstacles(int direction) {
   if (detectObstacles()) {
     if (direction == 1) { // turn right
       turnBaseDirection(0);
@@ -29,4 +26,53 @@ void bypassingObstacles (int direction) {
       set_torque(30, -30); 
     }
   }
+}
+
+float currentDistance(Vector3 position) {
+  Vector3 current = {.x = 11, .y = 11, .z = 11};
+
+  float xDistance = power(current.x - position.x, 2);
+  float zDistance = power(current.z - position.z, 2);
+
+  return squareRoot(xDistance + zDistance);
+}
+
+int detectObstacles(){
+  if (get_us_distance() != -1) { // if some distance is found, then there are obstacles
+    return 1;
+  }
+
+  return 0; // no obstacles
+}
+
+void turnBaseDirection (int direction) {
+  if (direction == 1) { // direction = counter-clockwise
+    set_engine_torque(1, 30); // turns the direction for walle's body
+  } else if (direction == 0) { // direction = clockwise
+    set_engine_torque(0, 30); // turns the direction for walle's body
+  }
+}
+
+/* ultis functions here */
+ 
+float power(float x, int y) {
+  if(y == 0)
+    return 1;
+
+  float result = 1;
+  for (int i = 0; i < y; i++)
+    result = result*x;
+  
+  return result;
+}
+
+float squareRoot(float number) {
+  float error = 0.00001; //define the precision of your result
+  float s = number;
+
+  while (s - (number/s) > error) //loop until precision satisfied 
+  {
+      s = (s + (number/s)) / 2;
+  }
+  return s;
 }

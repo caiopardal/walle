@@ -1,0 +1,10 @@
+# test file 
+test.c
+# object files (.o)
+*.o
+test
+
+# debug trash
+*.dSYM
+# vscode trash
+.vscode
