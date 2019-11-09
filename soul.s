@@ -346,107 +346,50 @@ syscall_get_us_distance:
 # args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
 # return -> -1 in case the servo id is invalid / -2 in case the servo angle is invalid / 0 in case the servo id and the angle is valid (the return is in the a0)
 syscall_set_head_servo:
-  mv t3, zero
-  beq a0, t3, syscall_set_head_servo_validServoId0 # Check if servo_id is 0
-  j syscall_set_head_servo_checkIfServoIs1
+  li t1, 1 // test for servo_id = 1
+  beq a0, t1, syscall_set_head_servo_id_1
+  li t1, 2 // test for servo_id = 2
+  beq a0, t1, syscall_set_head_servo_id_2
+  li t1, 3 // test for servo_id = 3
+  beq a0, t1, syscall_set_head_servo_id_3
+  li a0, -2 // invalid servo_id
+  j int_handler_restore_context
 
-  syscall_set_head_servo_checkIfServoIs1:
-    addi t3, zero, 1
-    beq a0, t3, syscall_set_head_servo_validServoId0 # If it's then check angle's limit
-    j syscall_set_head_servo_checkIfServoIs2
-
-  syscall_set_head_servo_checkIfServoIs2:
-    addi t3, zero, 2 # Check if servo_id is 2
-    bne a0, t3, syscall_set_head_servo_notValidServoId # If it's not 0, 1 or 2 then return -1
-    j syscall_set_head_servo_validServoId0
-
-  syscall_set_head_servo_validServoId0:
-    mv t3, zero
-    bne a0, t3, syscall_set_head_servo_checkIfItIsServoId1 # Check if servo_id is 1
-    j syscall_set_head_servo_checkGreaterLimitForBase
-
-  syscall_set_head_servo_checkGreaterLimitForBase:
-    addi t3, zero, 116 # Check greater limit for Base
-    blt t3, a1, syscall_set_head_servo_notValidAngleForBase # If it's not validAngle, return -2
-    j syscall_set_head_servo_checkLowerLimitForBase
-
-  syscall_set_head_servo_checkLowerLimitForBas
-    addi t3, zero, 15 # Check lower limit for Base
-    blt t3, a1, syscall_set_head_servo_validAngleForBase # If it's a validAngle, return 0
-    j syscall_set_head_servo_notValidAngleForBase
-
-  syscall_set_head_servo_notValidAngleForBase:
-    addi t3, zero, -2 # Set -2 as function return parameter
-    sw t3, a0
-    j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
-
-  syscall_set_head_servo_validAngleForBase:
-    li t1, peripheral_servo_base
-    sw a1, 0(t1)
-    j syscall_set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
-
-  syscall_set_head_servo_checkIfItIsServoId1:
-    addi t3, zero, 1
-    bne a0, t3, syscall_set_head_servo_checkIfItIsServoId2
-    j syscall_set_head_servo_checkGreaterLimitForMid
-
-  syscall_set_head_servo_checkGreaterLimitForMid:
-    addi t3, zero, 90 # Check greater limit for Mid
-    blt t3, a1, syscall_set_head_servo_notValidAngleForMid
-    j syscall_set_head_servo_checkLowerLimitForMid
-
-  syscall_set_head_servo_checkLowerLimitForMid:
-    addi t3, zero, 51 # Check lower limit for Mid
-    blt t3, a1, syscall_set_head_servo_validAngleForTop # If it's a validAngle, return 0
-    j syscall_set_head_servo_notValidAngleForMid
-
-  syscall_set_head_servo_notValidAngleForMid:
-    addi t3, zero, -2  # Set -2 as function return parameter
-    sw t3, a0
-    j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
-
-  syscall_set_head_servo_validAngleForMid:
-    li t1, peripheral_servo_mid
-    sw a1, 0(t1)
-    j syscall_set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
-
-  syscall_set_head_servo_checkIfItIsServoId2:
-    addi t3, zero, 2
-    bne a0, t3, syscall_set_head_servo_notValidAngleForTop # If it's not validAngle, return -2
-    j syscall_set_head_servo_checkGreaterLimitForMid
-
-  syscall_set_head_servo_checkGreaterLimitForMid:
-    addi t3, zero, 156 # Check greater limit for Top
-    blt t3, a1, syscall_set_head_servo_notValidAngleForTop # If it's not validAngle, return -2
-    j syscall_set_head_servo_checkLowerLimitForTop
-
-  syscall_set_head_servo_checkLowerLimitForTop:
-    addi t3, zero, -1 # Check lower limit for Top
-    blt t3, a1, syscall_set_head_servo_validAngleForTop # If it's a validAngle, return 0
-    j syscall_set_head_servo_notValidAngleForTop
-
-  syscall_set_head_servo_notValidAngleForTop:
-    addi t3, zero, -2 # Set -2 as function return parameter
-    sw t3, a0
-    j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
-
-  syscall_set_head_servo_validAngleForTop:
-    li t1, peripheral_servo_top
-    sw a1, 0(t1)
-    j syscall_set_head_servo_setZeroForReturn # Call method to set 0 as function return parameter
-
-  syscall_set_head_servo_setZeroForReturn:
-    mv t3, zero
-    sw t3, a0
-    j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
-
-  syscall_set_head_servo_notValidServoId:
-    addi t3, zero, -1
-    sw t3, a0
-    j syscall_set_head_servo_returnSetHeadServo # Call return method for this function
-
-  syscall_set_head_servo_returnSetHeadServo:
+  syscall_set_head_servo_id_1:
+    li t1, 16 // test for lower limit for angle when servo_id = 1
+    blt a1, t1, syscall_set_head_servo_error
+    li t1, 116 // test for greater limit for angle when servo_id = 1
+    blt a1, t1, syscall_set_head_servo_error
+    li t2, peripheral_servo_base
+    sw t2, 0(a1)
+    li a0, 0 // valid values
     j int_handler_restore_context
+
+  syscall_set_head_servo_id_2:
+    li t1, 52 // test for lower limit for angle when servo_id = 2
+    blt a1, t1, syscall_set_head_servo_error
+    li t1, 90 // test for greater limit for angle when servo_id = 2
+    blt a1, t1, syscall_set_head_servo_error
+    li t2, peripheral_servo_mid
+    sw t2, 0(a1)
+    li a0, 0 // valid values
+    j int_handler_restore_context
+
+  syscall_set_head_servo_id_3:
+    li t1, 0 // test for lower limit for angle when servo_id = 3
+    blt a1, t1, syscall_set_head_servo_error
+    li t1, 156 // test for greater limit for angle when servo_id = 3
+    blt a1, t1, syscall_set_head_servo_error
+    li t2, peripheral_servo_top
+    sw t2, 0(a1)
+    li a0, 0 // valid values
+    j int_handler_restore_context
+
+  syscall_set_head_servo_error:
+    li a0, -1 // invalid value for angle
+
+
+  j int_handler_restore_context
 
 # args -> a0: Descritor do arquivo, a1: Endereço de memória do buffer a ser escrito, a2: Número de bytes a serem escritos;
 # return -> void (a0: Número de bytes efetivamente escritos ao final da função)
@@ -485,9 +428,9 @@ syscall_puts:
 .equ peripheral_gpt_2, 0xFFFF0100 # GPT register that flags if the interruption is already resolved, size: byte
 .equ peripheral_torque_motor_1, 0xFFFF001A # writing in this register sets the Uoli motor 1 torque to Nm (Newton meters), size: half
 .equ peripheral_torque_motor2, 0xFFFF0018 # writing in this register sets the Uoli motor 2 torque to N m (Newton meters), size: half
-.equ peripheral_servo_base, 0xFFFF001C # writing in this register sets the servo motor angle 1 (base) in degrees value, size: byte
+.equ peripheral_servo_base, 0xFFFF001E # writing in this register sets the servo motor angle 1 (base) in degrees value, size: byte
 .equ peripheral_servo_mid, 0xFFFF001D # writing in this register sets the servo motor angle 2 (mid) in degrees value, size: byte
-.equ peripheral_servo_top, 0xFFFF0104 # writing in this register sets the servo motor angle 3 (top) in degrees value, size: byte
+.equ peripheral_servo_top, 0xFFFF001C # writing in this register sets the servo motor angle 3 (top) in degrees value, size: byte
 .equ peripheral_ultrasonic_status, 0xFFFF0020
 .equ peripheral_ultrasonic_value, 0xFFFF0024
 .equ peripheral_transmission_from_uart, 0xFFFF0108 # When assigned a value of 1, UART begins transmitting the value stored at 0xFFFF0109
