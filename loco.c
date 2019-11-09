@@ -15,3 +15,18 @@ int detectObstacles () {
 
   return 0; // no obstacles
 }
+
+void bypassingObstacles (int direction) {
+  if (detectObstacles()) {
+    if (direction == 1) { // turn right
+      turnBaseDirection(0);
+      set_head_servo(2, 270);
+    } else if (direction == 0) { // turn left
+      turnBaseDirection(1);
+      set_head_servo(2, 90);
+    }
+    while (detectObstacles()) { // move forward until you bypass the obstacle
+      set_torque(30, -30); 
+    }
+  }
+}
