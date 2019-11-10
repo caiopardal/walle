@@ -1,5 +1,24 @@
 .globl _start
 
+.equ peripheral_gps_status, 0xFFFF0004
+.equ peripheral_gps_x, 0xFFFF0008
+.equ peripheral_gps_y, 0xFFFF000C
+.equ peripheral_gps_z, 0xFFFF0010
+.equ peripheral_gyro_xyz, 0xFFFF0014
+.equ peripheral_gpt_1, 0xFFFF0100 # GPT register responsible for interrupting every "x" milisseconds, size: word
+.equ peripheral_gpt_2, 0xFFFF0100 # GPT register that flags if the interruption is already resolved, size: byte
+.equ peripheral_torque_motor_1, 0xFFFF001A # writing in this register sets the Uoli motor 1 torque to Nm (Newton meters), size: half
+.equ peripheral_torque_motor_2, 0xFFFF0018 # writing in this register sets the Uoli motor 2 torque to N m (Newton meters), size: half
+.equ peripheral_servo_base, 0xFFFF001C # writing in this register sets the servo motor angle 1 (base) in degrees value, size: byte
+.equ peripheral_servo_mid, 0xFFFF001D # writing in this register sets the servo motor angle 2 (mid) in degrees value, size: byte
+.equ peripheral_servo_top, 0xFFFF0104 # writing in this register sets the servo motor angle 3 (top) in degrees value, size: byte
+.equ peripheral_ultrasonic_status, 0xFFFF0020
+.equ peripheral_ultrasonic_value, 0xFFFF0024
+.equ peripheral_transmission_from_uart, 0xFFFF0108 # When assigned a value of 1, UART begins transmitting the value stored at 0xFFFF0109
+.equ peripheral_transmission_value_from_uart, 0xFFFF0109 # Value to be transmitted by UART
+.equ peripheral_reception_value_from_uart, 0xFFFF010A # When assigned a value of 1, UART starts receiving a byte on input and stores it at 0xFFFF010B
+.equ peripheral_reception_value_from_uart, 0xFFFF010B	# Value received by UART.
+
 # description: machine boot/reboot
 _start:
 	# Configura o tratador de interrupções
@@ -27,15 +46,18 @@ _start:
 	and t1, t1, t2 # com o valor 00
 	csrw mstatus, t1
 
-  # activating the GPT
-  li t1, peripheral_gpt_1
-  li t2, 100 # interrupt every 100 milisseconds
-  sw t2, 0(t1) 
+  # # activating the GPT
+  # li t1, peripheral_gpt_1
+  # li t2, 100 # interrupt every 100 milisseconds
+  # sw t2, 0(t1) 
 
   # initializing timer with 0
   la t1, machine_time
   li t2, 0
   sw t2, 0(t1) 
+
+  # initializing user stack
+  li sp, 0x7fffffc
 
 	la t0, boot # Grava o endereço do rótulo user
 	csrw mepc, t0 # no registrador mepc
@@ -44,6 +66,8 @@ _start:
 # description: execute user code, "main" in LoCo
 boot:
   call main
+  boot_exit:
+    j boot_exit
 
 # description: interruption handler
 int_handler:
@@ -83,12 +107,12 @@ int_handler:
   csrrw a0, mscratch, a0
   
   # decode the interruption cause
-  csrr a1, mcause # lê a causa da exceção
-  bgez a1, int_handler_exception # desvia se não for uma interrupção
+  csrr t1, mcause # lê a causa da exceção
+  bgez t1, int_handler_exception # desvia se não for uma interrupção
   
-  andi a1, a1, 0x3f # isola a causa de interrupção
-  li a2, 7 # a2 = interrupção do timer
-  bne a1, a2, int_handler_restore_context # desvia se não for interrupção do temporizador da máquina
+  andi t1, t1, 0x3f # isola a causa de interrupção
+  li t2, 7 # t2 = interrupção do timer
+  bne t1, t2, int_handler_restore_context # desvia se não for interrupção do temporizador da máquina
   
   int_handler_clock:
     # handling the GPT interruption, incrementing the clock
@@ -135,7 +159,20 @@ int_handler:
     li t1, 22
     beq t1, a7, syscall_set_time
 
+    li t1, 64
+    beq t1, a7, syscall_puts
+
     # not a syscall, return anyway
+    j int_handler_restore_context
+
+  # when it's a syscall called with ecall
+  int_handler_increment_return_adress:
+    # Ajustando MEPC para retornar de uma chamada de sistema
+    csrr a1, mepc # carrega endereço de retorno
+    # (endereço da instrução que invocou a syscall)
+    addi a1, a1, 4 # soma 4 no endereço de retorno
+    # (para retornar após a ecall)
+    csrs mepc, a1 # armazena endereço de retorno de volta no mepc
     j int_handler_restore_context
 
   int_handler_restore_context:
@@ -184,7 +221,7 @@ syscall_get_time:
   lw t1, 0(t1)
   mv a0, t1
 
-  j int_handler_restore_context
+  j int_handler_increment_return_adress
 
 # args -> a0: tempo do sistema, em milisegundos 
 # return -> none
@@ -192,7 +229,7 @@ syscall_set_time:
   la t1, machine_time
   sw a0, 0(t1)
 
-  j int_handler_restore_context
+  j int_handler_increment_return_adress
 
 # args -> a0: Endereço do registro (com três valores inteiros) para armazenar as coordenadas (x, y, z);
 # return -> void (the return is in the a0)
@@ -224,7 +261,7 @@ syscall_read_gps:
   lw t1, 0(t1)
   sw t1, 8(a0)
 
-  j int_handler_restore_context
+  j int_handler_increment_return_adress
 
 # args -> a0: Endereço do registro (com três valores inteiros) para armazenar os ângulos de Euler (x, y, z);
 # return -> void
@@ -262,7 +299,7 @@ syscall_get_gyro_angles:
   addi t6, t4, 8
   sw t6, 0(t3)
 
-  j int_handler_restore_context
+  j int_handler_increment_return_adress
 
 # args -> a0: Valor do ID da engrenagem, a1: Valor do torque da engrenagem
 # return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
@@ -279,7 +316,7 @@ syscall_set_engine_torque:
 
   syscall_set_engine_torque_lessThanOneHundred:
     addi t3, zero, -1
-    sw t3, a0
+    sw t3, 0(a0)
     j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   syscall_set_engine_torque_lessThanMinusOneHundred:
@@ -294,32 +331,32 @@ syscall_set_engine_torque:
 
   syscall_set_engine_torque_notEqualToOne:
     addi t3, zero, -2 # Set -2 as function return parameter
-    sw t3, a0
+    sw t3, 0(a0)
     j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   syscall_set_engine_torque_returnFromEqualsZero:
     li t4, 1
     beq a0, t4, syscall_set_engine_torque_set_peripheral_for_1
     li t4, 0
-    beq a0, t4, syscall_set_engine_torque_set_peripheral_for_0
+    beq a0, t4, syscall_set_engine_torque_set_peripheral_for_2
     j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
 
   syscall_set_engine_torque_set_peripheral_for_1:
     li t1, peripheral_torque_motor_1
     sw a1, 0(t1)
     mv t3, zero # Set 0 as function return parameter
-    sw t3, a0
+    sw t3, 0(a0)
     j syscall_set_engine_torque_returnSetEngineTorque
   
   syscall_set_engine_torque_set_peripheral_for_2:
     li t1, peripheral_torque_motor_2
     sw a1, 0(t1)
     mv t3, zero # Set 0 as function return parameter
-    sw t3, a0
+    sw t3, 0(a0)
     j syscall_set_engine_torque_returnSetEngineTorque
 
   syscall_set_engine_torque_returnSetEngineTorque:
-    j int_handler_restore_context
+    j int_handler_increment_return_adress
 
 # args -> none
 # return -> a0: distance of nearest object within the detection range, in centimeters.
@@ -332,7 +369,7 @@ syscall_get_us_distance:
   # loop until the peripheral_ultrasonic finishes reading the value returned by the ultrasound sensor in centimeters
   syscall_get_us_distance_loop:
     li t2, 1
-    li t1, peripheral_gps_status
+    li t1, peripheral_ultrasonic_status
     lw t1, 0(t1)
     bne t1, t2, syscall_get_us_distance_loop
   
@@ -341,7 +378,7 @@ syscall_get_us_distance:
   lw t1, 0(t1) # the reason that I `lw` two times is because 'peripheral_ultrasonic_value' stores the address of the peripheral, not the peripheral itself
   sw t1, 0(a0)
 
-  j int_handler_restore_context
+  j int_handler_increment_return_adress
 
 # args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
 # return -> -1 in case the servo id is invalid / -2 in case the servo angle is invalid / 0 in case the servo id and the angle is valid (the return is in the a0)
@@ -389,7 +426,7 @@ syscall_set_head_servo:
     li a0, -1 // invalid value for angle
 
 
-  j int_handler_restore_context
+  j int_handler_increment_return_adress
 
 # args -> a0: Descritor do arquivo, a1: Endereço de memória do buffer a ser escrito, a2: Número de bytes a serem escritos;
 # return -> void (a0: Número de bytes efetivamente escritos ao final da função)
@@ -402,13 +439,13 @@ syscall_puts:
     # starting the transmission of the string in the peripheral
     li t1, peripheral_transmission_from_uart # loading the macro
     li t2, 1
-    sw t2, 0(t1)
+    sb t2, 0(t1)
 
     # loop until the peripheral_transmission_from_uart finish transmitting the next byte
     syscall_puts_loop_for_transmission:
       li t2, 1
       li t1, peripheral_transmission_from_uart
-      lw t1, 0(t1)
+      lb t1, 0(t1)
       beq t1, t2, syscall_puts_loop_for_transmission
 
     addi a1, a1, 1 # advance to the next byte to be printed out
@@ -416,27 +453,8 @@ syscall_puts:
     bne zero, t6, syscall_puts_loop_for_printing
 
   mv a0, a2 # move the number of actual bytes written to a0
-  j int_handler_restore_context
+  j int_handler_increment_return_adress
 
 .data
-.equ peripheral_gps_status, 0xFFFF0004
-.equ peripheral_gps_x, 0xFFFF0008
-.equ peripheral_gps_y, 0xFFFF000C
-.equ peripheral_gps_z, 0xFFFF0010
-.equ peripheral_gyro_xyz, 0xFFFF0014
-.equ peripheral_gpt_1, 0xFFFF0100 # GPT register responsible for interrupting every "x" milisseconds, size: word
-.equ peripheral_gpt_2, 0xFFFF0100 # GPT register that flags if the interruption is already resolved, size: byte
-.equ peripheral_torque_motor_1, 0xFFFF001A # writing in this register sets the Uoli motor 1 torque to Nm (Newton meters), size: half
-.equ peripheral_torque_motor2, 0xFFFF0018 # writing in this register sets the Uoli motor 2 torque to N m (Newton meters), size: half
-.equ peripheral_servo_base, 0xFFFF001E # writing in this register sets the servo motor angle 1 (base) in degrees value, size: byte
-.equ peripheral_servo_mid, 0xFFFF001D # writing in this register sets the servo motor angle 2 (mid) in degrees value, size: byte
-.equ peripheral_servo_top, 0xFFFF001C # writing in this register sets the servo motor angle 3 (top) in degrees value, size: byte
-.equ peripheral_ultrasonic_status, 0xFFFF0020
-.equ peripheral_ultrasonic_value, 0xFFFF0024
-.equ peripheral_transmission_from_uart, 0xFFFF0108 # When assigned a value of 1, UART begins transmitting the value stored at 0xFFFF0109
-.equ peripheral_transmission_value_from_uart, 0xFFFF0109 # Value to be transmitted by UART
-.equ peripheral_reception_value_from_uart, 0xFFFF010A # When assigned a value of 1, UART starts receiving a byte on input and stores it at 0xFFFF010B
-.equ peripheral_reception_value_from_uart, 0xFFFF010B	# Value received by UART.
-
 machine_time: .skip 4
-machine_stack: .comm 1000
+.comm machine_stack, 1000, 4

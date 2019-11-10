@@ -2,6 +2,7 @@
 test.c
 # object files (.o)
 *.o
+*.x
 test
 
 # debug trash

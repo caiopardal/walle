@@ -78,7 +78,6 @@ set_torque:
 set_head_servo:
   li a7, 17
   ecall
-
   ret
 
 # args -> a0: Valor do ID da engrenagem, a1: Valor do torque da engrenagem
@@ -87,7 +86,6 @@ set_head_servo:
 set_engine_torque:
   li a7, 18
   ecall
-  
   ret
 
 # args -> none
@@ -96,7 +94,6 @@ set_engine_torque:
 get_us_distance:
   li a7, 16
   ecall
-
   ret
 
 # args -> a0: Endereço do registro (com três valores inteiros) para armazenar as coordenadas (x, y, z);
@@ -105,7 +102,6 @@ get_us_distance:
 get_current_GPS_position:
   li a7, 19
   ecall
-
   ret
 
 # args -> a0: Endereço do registro (com três valores inteiros) para armazenar os ângulos de Euler (x, y, z);
@@ -114,7 +110,6 @@ get_current_GPS_position:
 get_gyro_angles:
   li a7, 20
   ecall
-
   ret
 
 # args -> none
@@ -123,7 +118,6 @@ get_gyro_angles:
 get_time:
   li a7, 21
   ecall
-
   ret
 
 # args -> a0: tempo do sistema, em milisegundos;
@@ -132,14 +126,48 @@ get_time:
 set_time:
   li a7, 22
   ecall
-
   ret
 
 # args -> a0: Descritor do arquivo, a1: Endereço de memória do buffer a ser escrito, a2: Número de bytes a serem escritos;
 # return -> a0: Número de bytes efetivamente escritos;
 .globl puts
 puts:
+  # push the first argument value
+  addi sp, sp, -4
+  sw ra, 0(sp)
+  addi sp, sp, -4
+  sw a0, 0(sp)
+
+  # calculate string size
+  jal string_length
+
+  mv a2, a0 # string size
+  li a0, 1 # file descriptor
+  lw a1, 0(sp) # string buffer
+  addi sp, sp, 4
+
   li a7, 64
   ecall
+  lw ra, 0(sp) # pop the return address
+  addi sp, sp, 4
 
   ret
+
+# description: calculates de string length
+# args -> a0: string address
+# return -> a0: string length
+string_length:
+  lb t1, 0(a0)
+  li t2, 0 # end of string = '\0'
+  li t3, 0 # string size, char counter
+
+  string_length_loop:
+    beq t1, t2, string_length_return # check if current char is '\0'
+    addi t3, t3, 1
+    addi a0, a0, 1 # increment char pointer
+    lb t1, 0(a0)
+    j string_length_loop
+
+  string_length_return:
+    mv a0, t3
+    ret
