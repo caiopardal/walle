@@ -84,8 +84,28 @@ set_head_servo:
 # return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
 .globl set_engine_torque
 set_engine_torque:
-  li a7, 18
-  ecall
+  li t0, -100 
+  blt a1, t0, set_engine_torque_invalid_value // if torque's value is less than -100
+  li t0, 100
+  blt a1, t0, set_engine_torque_invalid_value // if torque's value is less than 100
+
+  set_engine_torque_valid_torque_value:
+    bne a0, zero, set_engine_torque_invalid_engineId # if a0's != 0, then the id is invalid
+    li t1, 1
+    bne a0, t1, set_engine_torque_invalid_engineId # if a0's != 1, then the id is invalid
+    li a7, 18
+    ecall
+
+    ret
+
+  set_engine_torque_invalid_value:
+    li a0, -1
+    ret
+
+  set_engine_torque_invalid_engineId:
+    li a0, -2
+    ret
+    
   ret
 
 # args -> none

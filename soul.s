@@ -285,7 +285,7 @@ syscall_get_gyro_angles:
   mv t3, t1
   srli t1, t1, 20
   mv t4, a0
-  sw t4,0(t1)
+  sw t4, 0(t1)
 
   # grabs the y angle
   slli t2, t2, 12 
@@ -304,59 +304,26 @@ syscall_get_gyro_angles:
 # args -> a0: Valor do ID da engrenagem, a1: Valor do torque da engrenagem
 # return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
 syscall_set_engine_torque:
-  mv t2, a1 # moving the torque value to t2
-  addi t3, zero, 100 # Add 100 to a1 to compare with a0
-  blt t3, t2, syscall_set_engine_torque_lessThanOneHundred # If a0's value is less than 100, branch to check if a1's value is lower too
-  j syscall_set_engine_torque_compareWithMinusOneHundred
+  li t1, 1
+  beq a0, t1, syscall_set_engine_torque_motor_1
+  li t1, 2
+  beq a0, t1, syscall_set_engine_torque_motor_2
+  li a0, -2
+  j int_handler_increment_return_adress
 
-  syscall_set_engine_torque_compareWithMinusOneHundred:
-    addi t3, zero, -101 # Check if a0's value is less than -100
-    blt t3, t2, syscall_set_engine_torque_lessThanMinusOneHundred # If it's than return -1
-    j syscall_set_engine_torque_lessThanOneHundred
-
-  syscall_set_engine_torque_lessThanOneHundred:
-    addi t3, zero, -1
-    sw t3, 0(a0)
-    j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
-
-  syscall_set_engine_torque_lessThanMinusOneHundred:
-    addi t3, zero, 1 # Check if engine_id is 1
-    bne a0, t3, syscall_set_engine_torque_notEqualToOne # If it's not equal to one, return -2
-    j syscall_set_engine_torque_equalsZero
-
-  syscall_set_engine_torque_equalsZero:
-    mv t3, zero
-    beq a0, t3, syscall_set_engine_torque_returnFromEqualsZero # If it's equal to zero, return 0
-    j syscall_set_engine_torque_notEqualToOne
-
-  syscall_set_engine_torque_notEqualToOne:
-    addi t3, zero, -2 # Set -2 as function return parameter
-    sw t3, 0(a0)
-    j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
-
-  syscall_set_engine_torque_returnFromEqualsZero:
-    li t4, 1
-    beq a0, t4, syscall_set_engine_torque_set_peripheral_for_1
-    li t4, 0
-    beq a0, t4, syscall_set_engine_torque_set_peripheral_for_2
-    j syscall_set_engine_torque_returnSetEngineTorque # Call return method for this function
-
-  syscall_set_engine_torque_set_peripheral_for_1:
+  syscall_set_engine_torque_motor_1:
     li t1, peripheral_torque_motor_1
-    sw a1, 0(t1)
-    mv t3, zero # Set 0 as function return parameter
-    sw t3, 0(a0)
-    j syscall_set_engine_torque_returnSetEngineTorque
-  
-  syscall_set_engine_torque_set_peripheral_for_2:
-    li t1, peripheral_torque_motor_2
-    sw a1, 0(t1)
-    mv t3, zero # Set 0 as function return parameter
-    sw t3, 0(a0)
-    j syscall_set_engine_torque_returnSetEngineTorque
-
-  syscall_set_engine_torque_returnSetEngineTorque:
+    sw t1, 0(a1)
+    l1 a0, 0
     j int_handler_increment_return_adress
+
+  syscall_set_engine_torque_motor_2:
+    li t1, peripheral_torque_motor_2
+    sw t1, 0(a1)
+    li a0, 0
+    j int_handler_increment_return_adress
+
+	j int_handler_increment_return_adress
 
 # args -> none
 # return -> a0: distance of nearest object within the detection range, in centimeters.
