@@ -138,6 +138,8 @@ void swap(int *xp, int *yp) {
 
 
 int main(){
+  set_head_servo(0, 60);
+  set_head_servo(1, 60);
 
   return 0;
 }

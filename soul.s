@@ -9,9 +9,9 @@
 .equ peripheral_gpt_2, 0xFFFF0100 # GPT register that flags if the interruption is already resolved, size: byte
 .equ peripheral_torque_motor_1, 0xFFFF001A # writing in this register sets the Uoli motor 1 torque to Nm (Newton meters), size: half
 .equ peripheral_torque_motor_2, 0xFFFF0018 # writing in this register sets the Uoli motor 2 torque to N m (Newton meters), size: half
-.equ peripheral_servo_base, 0xFFFF001C # writing in this register sets the servo motor angle 1 (base) in degrees value, size: byte
+.equ peripheral_servo_base, 0xFFFF001E # writing in this register sets the servo motor angle 1 (base) in degrees value, size: byte
 .equ peripheral_servo_mid, 0xFFFF001D # writing in this register sets the servo motor angle 2 (mid) in degrees value, size: byte
-.equ peripheral_servo_top, 0xFFFF0104 # writing in this register sets the servo motor angle 3 (top) in degrees value, size: byte
+.equ peripheral_servo_top, 0xFFFF001C # writing in this register sets the servo motor angle 3 (top) in degrees value, size: byte
 .equ peripheral_ultrasonic_status, 0xFFFF0020
 .equ peripheral_ultrasonic_value, 0xFFFF0024
 .equ peripheral_transmission_from_uart, 0xFFFF0108 # When assigned a value of 1, UART begins transmitting the value stored at 0xFFFF0109
@@ -103,7 +103,6 @@ int_handler:
   sw gp, 108(a0)
   sw sp, 112(a0)
   sw ra, 116(a0)
-  addi a0, a0, 120
   csrrw a0, mscratch, a0
   
   # decode the interruption cause
@@ -172,42 +171,41 @@ int_handler:
     # (endereço da instrução que invocou a syscall)
     addi a1, a1, 4 # soma 4 no endereço de retorno
     # (para retornar após a ecall)
-    csrs mepc, a1 # armazena endereço de retorno de volta no mepc
+    csrw mepc, a1 # armazena endereço de retorno de volta no mepc
     j int_handler_restore_context
 
   int_handler_restore_context:
     csrrw a0, mscratch, a0
-    lw ra, 0(a0)
-    lw sp, 4(a0)
-    lw gp, 8(a0)
-    lw tp, 12(a0) 
-    lw t6, 16(a0)
-    lw t5, 20(a0)
-    lw t4, 24(a0)
-    lw t3, 28(a0)
-    lw t2, 32(a0)
-    lw t1, 36(a0)
-    lw t0, 40(a0)
-    lw s11, 44(a0)
-    lw s10, 48(a0)
-    lw s9, 52(a0)
-    lw s8, 56(a0)
-    lw s7, 60(a0)
-    lw s6, 64(a0)
-    lw s5, 68(a0)
-    lw s4, 72(a0)
-    lw s3, 76(a0)
-    lw s2, 80(a0)
-    lw s1, 84(a0)
-    lw fp, 88(a0) 
-    lw a7, 92(a0)
-    lw a6, 96(a0)
-    lw a5, 100(a0)
-    lw a4, 104(a0) 
-    lw a3, 108(a0) 
-    lw a2, 112(a0) 
-    lw a1, 116(a0)
-    addi a0, a0, -120
+    lw a1, 0(a0)
+    lw a2, 4(a0) 
+    lw a3, 8(a0) 
+    lw a4, 12(a0) 
+    lw a5, 16(a0)
+    lw a6, 20(a0)
+    lw a7, 24(a0)
+    lw fp, 28(a0) 
+    lw s1, 32(a0)
+    lw s2, 36(a0)
+    lw s3, 40(a0)
+    lw s4, 44(a0)
+    lw s5, 48(a0)
+    lw s6, 52(a0)
+    lw s7, 56(a0)
+    lw s8, 60(a0)
+    lw s9, 64(a0)
+    lw s10, 68(a0)
+    lw s11, 72(a0)
+    lw t0, 76(a0)
+    lw t1, 80(a0)
+    lw t2, 84(a0)
+    lw t3, 88(a0)
+    lw t4, 92(a0)
+    lw t5, 96(a0)
+    lw t6, 100(a0)
+    lw tp, 104(a0) 
+    lw gp, 108(a0)
+    lw sp, 112(a0)
+    lw ra, 116(a0)
     csrrw a0, mscratch, a0
 
     mret 
@@ -285,45 +283,55 @@ syscall_get_gyro_angles:
   mv t3, t1
   srli t1, t1, 20
   mv t4, a0
-  sw t4, 0(t1)
+  sw t1, 0(t4)
 
   # grabs the y angle
   slli t2, t2, 12 
 	srli t2, t2, 22
-  addi t5, t4, 4
-  sw t5, 0(t2)
+  sw t2, 4(t4)
 
   # grabs the z angle
   slli t3, t3, 22
 	srli t3, t3, 22
-  addi t6, t4, 8
-  sw t6, 0(t3)
+  sw t3, 8(t4)
 
   j int_handler_increment_return_adress
 
 # args -> a0: Valor do ID da engrenagem, a1: Valor do torque da engrenagem
 # return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
 syscall_set_engine_torque:
-  li t1, 1
-  beq a0, t1, syscall_set_engine_torque_motor_1
-  li t1, 2
-  beq a0, t1, syscall_set_engine_torque_motor_2
-  li a0, -2
-  j int_handler_increment_return_adress
+  li t0, -100 
+  blt a1, t0, syscall_set_engine_torque_invalid_value # if torque's value is less than -100
+  li t0, 100
+  bgt a1, t0, syscall_set_engine_torque_invalid_value # if torque's value is greater than 100
+
+  syscall_set_engine_torque_valid_torque_value:
+    beq a0, zero, syscall_set_engine_torque_motor_1 # if a0's != 0, then the id is invalid
+    li t1, 1
+    beq a0, t1, syscall_set_engine_torque_motor_2 # if a0's != 1, then the id is invalid
+    j syscall_set_engine_torque_invalid_engineId
 
   syscall_set_engine_torque_motor_1:
     li t1, peripheral_torque_motor_1
-    sw t1, 0(a1)
-    l1 a0, 0
-    j int_handler_increment_return_adress
+    sw a1, 0(t1)
+    li a0, 0
+    j syscall_set_engine_torque_return
 
   syscall_set_engine_torque_motor_2:
     li t1, peripheral_torque_motor_2
-    sw t1, 0(a1)
+    sw a1, 0(t1)
     li a0, 0
-    j int_handler_increment_return_adress
+    j syscall_set_engine_torque_return
 
-	j int_handler_increment_return_adress
+  syscall_set_engine_torque_invalid_value:
+    li a0, -1
+    j syscall_set_engine_torque_return
+  syscall_set_engine_torque_invalid_engineId:
+    li a0, -2
+    j syscall_set_engine_torque_return
+
+  syscall_set_engine_torque_return:
+	  j int_handler_increment_return_adress
 
 # args -> none
 # return -> a0: distance of nearest object within the detection range, in centimeters.
@@ -350,50 +358,50 @@ syscall_get_us_distance:
 # args -> a0: Valor do Servo ID , a1: Valor do ângulo do Servo 
 # return -> -1 in case the servo id is invalid / -2 in case the servo angle is invalid / 0 in case the servo id and the angle is valid (the return is in the a0)
 syscall_set_head_servo:
-  li t1, 1 // test for servo_id = 1
+  li t1, 0 # test for servo_id = 1
+  beq a0, t1, syscall_set_head_servo_id_0
+  li t1, 1 # test for servo_id = 2
   beq a0, t1, syscall_set_head_servo_id_1
-  li t1, 2 // test for servo_id = 2
+  li t1, 2 # test for servo_id = 3
   beq a0, t1, syscall_set_head_servo_id_2
-  li t1, 3 // test for servo_id = 3
-  beq a0, t1, syscall_set_head_servo_id_3
-  li a0, -2 // invalid servo_id
-  j int_handler_restore_context
+  li a0, -2 # invalid servo_id
+  j syscall_set_head_servo_return
+
+  syscall_set_head_servo_id_0:
+    li t1, 16 # test for lower limit for angle when servo_id = 1
+    blt a1, t1, syscall_set_head_servo_error
+    li t1, 116 # test for greater limit for angle when servo_id = 1
+    bgt a1, t1, syscall_set_head_servo_error
+    li t2, peripheral_servo_base
+    sb a1, 0(t2)
+    li a0, 0 # valid values
+    j syscall_set_head_servo_return
 
   syscall_set_head_servo_id_1:
-    li t1, 16 // test for lower limit for angle when servo_id = 1
+    li t1, 52 # test for lower limit for angle when servo_id = 2
     blt a1, t1, syscall_set_head_servo_error
-    li t1, 116 // test for greater limit for angle when servo_id = 1
-    blt a1, t1, syscall_set_head_servo_error
-    li t2, peripheral_servo_base
-    sw t2, 0(a1)
-    li a0, 0 // valid values
-    j int_handler_restore_context
-
-  syscall_set_head_servo_id_2:
-    li t1, 52 // test for lower limit for angle when servo_id = 2
-    blt a1, t1, syscall_set_head_servo_error
-    li t1, 90 // test for greater limit for angle when servo_id = 2
-    blt a1, t1, syscall_set_head_servo_error
+    li t1, 90 # test for greater limit for angle when servo_id = 2
+    bgt a1, t1, syscall_set_head_servo_error
     li t2, peripheral_servo_mid
-    sw t2, 0(a1)
-    li a0, 0 // valid values
-    j int_handler_restore_context
-
-  syscall_set_head_servo_id_3:
-    li t1, 0 // test for lower limit for angle when servo_id = 3
+    sb a1, 0(t2)
+    li a0, 0 # valid values
+    j syscall_set_head_servo_return
+    
+  syscall_set_head_servo_id_2:
+    li t1, 0 # test for lower limit for angle when servo_id = 3
     blt a1, t1, syscall_set_head_servo_error
-    li t1, 156 // test for greater limit for angle when servo_id = 3
-    blt a1, t1, syscall_set_head_servo_error
+    li t1, 156 # test for greater limit for angle when servo_id = 3
+    bgt a1, t1, syscall_set_head_servo_error
     li t2, peripheral_servo_top
-    sw t2, 0(a1)
-    li a0, 0 // valid values
-    j int_handler_restore_context
+    sb a1, 0(t2)
+    li a0, 0 # valid values
+    j syscall_set_head_servo_return
 
   syscall_set_head_servo_error:
-    li a0, -1 // invalid value for angle
+    li a0, -1 # invalid value for angle
 
-
-  j int_handler_increment_return_adress
+  syscall_set_head_servo_return:
+    j int_handler_increment_return_adress
 
 # args -> a0: Descritor do arquivo, a1: Endereço de memória do buffer a ser escrito, a2: Número de bytes a serem escritos;
 # return -> void (a0: Número de bytes efetivamente escritos ao final da função)
@@ -417,7 +425,8 @@ syscall_puts:
 
     addi a1, a1, 1 # advance to the next byte to be printed out
     lb t6, 0(a1)
-    bne zero, t6, syscall_puts_loop_for_printing
+    li t4, 0
+    bne t4, t6, syscall_puts_loop_for_printing
 
   mv a0, a2 # move the number of actual bytes written to a0
   j int_handler_increment_return_adress
