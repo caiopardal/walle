@@ -12,7 +12,7 @@ void reverse(char str[], int length);
 float squareRoot(float number);
 void itoa(int num, char* str, int base);
 void swap(int *xp, int *yp);
-
+int arcSin(int x);
 
 /* robot functions here */
 
@@ -56,7 +56,7 @@ void turnBaseDirection (int direction) {
   }
 }
 
-/* ultis functions here */
+/* utils functions here */
  
 // Implementation of itoa() 
 void itoa(int num, char* str, int base) { 
@@ -166,7 +166,6 @@ int arcSin(int x) {
     return ((20*(x-1)) + 1.57);
   }
 }
-
 
 int main(){
   set_head_servo(0, 60);
