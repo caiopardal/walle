@@ -134,7 +134,38 @@ void swap(int *xp, int *yp) {
     int temp = *xp; 
     *xp = *yp; 
     *yp = temp; 
-} 
+}
+
+// this function receives a value for a sin and it returns it's arcsin (both values are in radians)
+int arcSin(int x) {
+  if (x > 0 && x < 0.4) {
+    return ((0.4115/0.4)*x);
+  } 
+  else if (x > 0.4 && x < 0.565) {
+    return ((1.145*(x-4)) + 0.4115);
+  }
+  else if (x > 0.565 && x < 0.7004) {
+    return ((1.29689*(x-0.565)) + 0.6004);
+  }
+  else if (x > 0.7004 && x < 0.8014) {
+    return ((1.52*(x-0.7004)) + 0.776);
+  }
+  else if (x > 0.8014 && x < 0.8675) {
+    return ((1.82*(x-0.8014)) + 0.9296);
+  }
+  else if (x > 0.8675 && x < 0.9318) {
+    return ((2.3188*(x-0.8675)) + 1.0502);
+  }
+  else if (x > 0.9318 && x < 0.9758) {
+    return ((3.4340*(x-0.9318)) + 1.1993);
+  }
+  else if (x > 0.9758 && x < 0.995) {
+    return ((6.27*(x-0.995)) + 1.4708);
+  }
+  else if (x > 0.995 && x < 1) {
+    return ((20*(x-1)) + 1.57);
+  }
+}
 
 
 int main(){
