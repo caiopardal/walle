@@ -7,12 +7,11 @@ float currentDistance(Vector3 position);
 void turnBaseDirection (int direction);
 
 // utils functions
-float power(float x, int y);
-void reverse(char str[], int length);
-float squareRoot(float number);
-void itoa(int num, char* str, int base);
-void swap(int *xp, int *yp);
 int arcSin(int x);
+void itoa(int number, char* string);
+float power(float x, int y);
+void printInt(int number);
+float squareRoot(float number);
 
 /* robot functions here */
 
@@ -56,46 +55,41 @@ void turnBaseDirection (int direction) {
   }
 }
 
-/* utils functions here */
- 
-// Implementation of itoa() 
-void itoa(int num, char* str, int base) { 
-	int i = 0; 
-	int isNegative = 0; 
+/* ultis functions here */
 
-	/* Handle 0 explicitely, otherwise empty string is printed for 0 */
-	if (num == 0) { 
-		str[i++] = '0'; 
-		str[i] = '\0'; 
-		return str; 
-	} 
+void itoa(int number, char* string){
+  int i = 0;
+  int rem;
+  int length = 0;
+  int n;
 
-	// In standard itoa(), negative numbers are handled only with 
-	// base 10. Otherwise numbers are considered unsigned. 
-	if (num < 0 && base == 10) { 
-		isNegative = 1; 
-		num = -num; 
-	} 
+  if(number == 0){
+    string[0] = '0';
+    string[1] = '\0';
+    return;
+  }
+  else{
+    if(number < 0){
+      n = -number;
+      number = -number;
+    }
+    else
+      n = number;
+  }
+  
+  while (n != 0){
+    length++;
+    n /= 10;
+  }
+  for (int i = 0; i < length; i++){
+    rem = number % 10;
+    number = number / 10;
+    string[length - (i + 1)] = rem + '0';
+  }
+  
+  string[length] = '\0';
 
-	// Process individual digits 
-	while (num != 0) { 
-		int rem = num % base; 
-		str[i++] = (rem > 9)? (rem-10) + 'a' : rem + '0'; 
-		num = num/base; 
-	} 
-
-	// If number is negative, append '-' 
-	if (isNegative) 
-		str[i++] = '-'; 
-
-	str[i] = '\0'; // Append string terminator 
-
-	// Reverse the string 
-	reverse(str, i); 
-
-	return; 
-} 
-
+}
 
 float power(float x, int y) {
   if(y == 0)
@@ -108,32 +102,22 @@ float power(float x, int y) {
   return result;
 }
 
-/* A utility function to reverse a string */
-void reverse(char str[], int length) { 
-	int start = 0; 
-	int end = length -1; 
-	while (start < end) { 
-		swap(*(str+start), *(str+end)); 
-		start++; 
-		end--; 
-	} 
-} 
+void printInt(int number){
+  char string[10];
+  itoa(number, string);
+
+  if(number < 0)
+    puts("-");
+  puts(string);
+}
 
 float squareRoot(float number) {
   float error = 0.00001; //define the precision of your result
   float s = number;
 
-  while (s - (number/s) > error) //loop until precision satisfied 
-  {
-      s = (s + (number/s)) / 2;
-  }
+  while (s - (number/s) > error) //loop until precision satisfied
+    s = (s + (number/s)) / 2;
   return s;
-}
-
-void swap(int *xp, int *yp) { 
-    int temp = *xp; 
-    *xp = *yp; 
-    *yp = temp; 
 }
 
 // this function receives a value for a sin and it returns it's arcsin (both values are in radians)
@@ -168,8 +152,9 @@ int arcSin(int x) {
 }
 
 int main(){
-  set_head_servo(0, 60);
-  set_head_servo(1, 60);
+  while(1==1){
+    puts("Hey\n");
+  }
 
   return 0;
 }

@@ -6,7 +6,7 @@
 .equ peripheral_gps_z, 0xFFFF0010
 .equ peripheral_gyro_xyz, 0xFFFF0014
 .equ peripheral_gpt_1, 0xFFFF0100 # GPT register responsible for interrupting every "x" milisseconds, size: word
-.equ peripheral_gpt_2, 0xFFFF0100 # GPT register that flags if the interruption is already resolved, size: byte
+.equ peripheral_gpt_2, 0xFFFF0104 # GPT register that flags if the interruption is already resolved, size: byte
 .equ peripheral_torque_motor_1, 0xFFFF001A # writing in this register sets the Uoli motor 1 torque to Nm (Newton meters), size: half
 .equ peripheral_torque_motor_2, 0xFFFF0018 # writing in this register sets the Uoli motor 2 torque to N m (Newton meters), size: half
 .equ peripheral_servo_base, 0xFFFF001E # writing in this register sets the servo motor angle 1 (base) in degrees value, size: byte
@@ -113,13 +113,7 @@ int_handler:
   li t2, 7 # t2 = interrupção do timer
   bne t1, t2, int_handler_restore_context # desvia se não for interrupção do temporizador da máquina
   
-  int_handler_clock:
-    # handling the GPT interruption, incrementing the clock
-    la t1, machine_time
-    lw t2, 0(t1)
-    addi t2, t2, 100
-    sw t2, 0(t1)
-  
+  int_handler_clock:  
     # flagging that the GPT interruption has already been handled
     li t1, peripheral_gpt_2
     lw t3, 0(t1)
@@ -128,6 +122,12 @@ int_handler:
     
     li t2, 0 # interruption flag bit, set "false"
     sb t2, 0(t1) 
+
+    # handling the GPT interruption, incrementing the clock
+    la t1, machine_time
+    lw t2, 0(t1)
+    addi t2, t2, 100
+    sw t2, 0(t1)
     
     # activating the GPT
     li t1, peripheral_gpt_1
