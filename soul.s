@@ -46,10 +46,10 @@ _start:
 	and t1, t1, t2 # com o valor 00
 	csrw mstatus, t1
 
-  # # activating the GPT
-  # li t1, peripheral_gpt_1
-  # li t2, 100 # interrupt every 100 milisseconds
-  # sw t2, 0(t1) 
+  # activating the GPT
+  li t1, peripheral_gpt_1
+  li t2, 100 # interrupt every 100 milisseconds
+  sw t2, 0(t1) 
 
   # initializing timer with 0
   la t1, machine_time
@@ -110,7 +110,7 @@ int_handler:
   bgez t1, int_handler_exception # desvia se não for uma interrupção
   
   andi t1, t1, 0x3f # isola a causa de interrupção
-  li t2, 7 # t2 = interrupção do timer
+  li t2, 11 # t2 = interrupção do timer
   bne t1, t2, int_handler_restore_context # desvia se não for interrupção do temporizador da máquina
   
   int_handler_clock:  

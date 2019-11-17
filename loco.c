@@ -153,7 +153,9 @@ int arcSin(int x) {
 
 int main(){
   while(1==1){
-    puts("Hey\n");
+    unsigned int time = get_time();
+    printInt((int) time);
+    puts("\n");
   }
 
   return 0;
