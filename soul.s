@@ -313,13 +313,13 @@ syscall_set_engine_torque:
 
   syscall_set_engine_torque_motor_1:
     li t1, peripheral_torque_motor_1
-    sw a1, 0(t1)
+    sh a1, 0(t1)
     li a0, 0
     j syscall_set_engine_torque_return
 
   syscall_set_engine_torque_motor_2:
     li t1, peripheral_torque_motor_2
-    sw a1, 0(t1)
+    sh a1, 0(t1)
     li a0, 0
     j syscall_set_engine_torque_return
 
