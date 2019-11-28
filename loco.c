@@ -119,7 +119,7 @@ void moveWalle(int angToTurn) {
     } else {
       set_torque(-8, 8); // else, turn left
     }
-  } else {
+  } else { // else move walle to a friend and treat the obstacles here
     set_torque(10, 10);
   }
 }
@@ -256,13 +256,20 @@ double arcSin(double x) {
   }
 }
 
+/* Estratégia seguida para encontrar os amigos:
+  Visando percorrer todo o vetor de amigos que é passado no arquivo api_robot2.h, essa função main irá fazer uso de uma estratégia de calcular o amigo
+  mais próximo e ir até ele, enquanto ainda existirem amigos para se visitar. Dentro dessa lógica de visita, há o cálculo do ângulo para posicionar a base
+  do Walle corretamente para a posição do amigo (função getAngleToTurn) e em seguida faz uso da função moveWalle. Essa última função move o Walle enquanto
+  sua distância ao amigo for menor do que 5 metros. Quando isso acontece, o amigo visitado é marcado como visitado no Array de amigos e o próximo amigo vira
+  o alvo atual do Walle, que por sua vez, irá ajustar a sua base para se mover até esse novo amigo. Dentro dessa função chamada moveWalle, a ideia é fazer uso
+  das funções detectObstacles, detectDangerLocation e turnBaseDirection para desviar dos obstáculos que o Walle encontrar no caminho. Dessa maneira, o Walle irá percorrer todos os amigos passados evitando as zonas perigosas e cumprindo o seu objetivo */
 int main(){
-  int numOfFriends = sizeof(friends_locations) / sizeof(friends_locations[0]);
-  int numOfVisitedFriends = 0;
+  int numOfFriends = sizeof(friends_locations) / sizeof(friends_locations[0]); // variable that contains the number of friends to visit
+  int numOfVisitedFriends = 0; // variable that contains the number of visited friends
   int currentFriendIndex;
 
-  set_torque(-4,-4);
-  wait(3);
+  set_torque(-4,-4); // To initialize the walle's hunt, go backwards then start the hunt
+  wait(3); // set a timeout to start the hunt
 
   Vector3 friend;
   Vector3 currentPosition;
@@ -272,30 +279,16 @@ int main(){
 
   get_current_GPS_position(&currentPosition);
 
-  // for(int i = 0; i < numOfFriends; i++){
-  //   if(!isVisited(i)){
-  //     if(distance(currentPosition, friends_locations[i]) < minimum){
-  //       friend.x = friends_locations[i].x;
-  //       friend.y = friends_locations[i].y;
-  //       friend.z = friends_locations[i].z;
-  //       currentFriendIndex = i;
-  //       minimum = distance(currentPosition, friends_locations[i]);
-  //     }
-  //   }
-  // }
-
   friend = friends_locations[numOfVisitedFriends];
 
-  while(numOfVisitedFriends < numOfFriends) {
+  while(numOfVisitedFriends < numOfFriends) { // while there are friends to visit
     get_gyro_angles(&angles);
-    printInt(angles.y);
-    puts("\n\0");
     get_current_GPS_position(&currentPosition); // gets walle's current position
-    int angle = getAngleToTurn(angles.y, currentPosition, friend);
+    int angle = getAngleToTurn(angles.y, currentPosition, friend); // calculates the angle to turn
 
-    moveWalle(angle);
+    moveWalle(angle); // move walle to friend's location
 
-    if (distance(currentPosition, friend) <= 5) {
+    if (distance(currentPosition, friend) <= 5) { // if you visit the friend, mark as visited
       friend = friends_locations[numOfVisitedFriends++];
     }
   }
