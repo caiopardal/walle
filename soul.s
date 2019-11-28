@@ -116,7 +116,7 @@ int_handler:
   int_handler_clock:  
     # flagging that the GPT interruption has already been handled
     li t1, peripheral_gpt_2
-    lw t3, 0(t1)
+    lb t3, 0(t1)
     li t4, 0
     beq t3, t4, int_handler_restore_context # check if is a delay input problem 
     
