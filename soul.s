@@ -276,24 +276,21 @@ syscall_get_gyro_angles:
     lw t1, 0(t1)
     bne t1, t2, syscall_get_gyro_angles_loop
   
-  # grabs the x angle
+  # grabs the z angle
   li t1, peripheral_gyro_xyz
   lw t1, 0(t1)
-  mv t2, t1
-  mv t3, t1
-  srli t1, t1, 20
-  mv t4, a0
-  sw t1, 0(t4)
+  
+  andi t2, t1, 1023
+  sw t2, 8(a0)
 
   # grabs the y angle
-  slli t2, t2, 12 
-	srli t2, t2, 22
-  sw t2, 4(t4)
+  srli t3, t1, 10
+  andi t3, t3, 1023
+  sw t3, 4(a0)
 
-  # grabs the z angle
-  slli t3, t3, 22
-	srli t3, t3, 22
-  sw t3, 8(t4)
+  # grabs the x angle
+  srli t4, t1, 20
+  sw t4, 0(a0)
 
   j int_handler_increment_return_adress
 
