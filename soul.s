@@ -325,7 +325,7 @@ syscall_set_engine_torque:
 	  j int_handler_increment_return_adress
 
 # args -> none
-# return -> a0: distance of nearest object within the detection range, in centimeters.
+# return -> a0: distance of nearest object within the detection range, in centimeters, a1: nothing was detected in a 600cm distance
 syscall_get_us_distance:
   # starting the rotation calculation in the peripheral
   li t1, peripheral_ultrasonic_status
@@ -339,10 +339,9 @@ syscall_get_us_distance:
     lw t1, 0(t1)
     bne t1, t2, syscall_get_us_distance_loop
   
-  # grabs the value returned by the ultrasound sensor in centimeters
+  # grabs the value returned by the ultrasonic sensor in centimeters
   li t1, peripheral_ultrasonic_value
-  lw t1, 0(t1) # the reason that I `lw` two times is because 'peripheral_ultrasonic_value' stores the address of the peripheral, not the peripheral itself
-  sw t1, 0(a0)
+  lw a0, 0(t1) 
 
   j int_handler_increment_return_adress
 
