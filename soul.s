@@ -298,18 +298,12 @@ syscall_get_gyro_angles:
   j int_handler_increment_return_adress
 
 # args -> a0: Valor do ID da engrenagem, a1: Valor do torque da engrenagem
-# return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
+# return -> -1 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
 syscall_set_engine_torque:
-  li t0, -100 
-  blt a1, t0, syscall_set_engine_torque_invalid_value # if torque's value is less than -100
-  li t0, 100
-  bgt a1, t0, syscall_set_engine_torque_invalid_value # if torque's value is greater than 100
-
-  syscall_set_engine_torque_valid_torque_value:
-    beq a0, zero, syscall_set_engine_torque_motor_1 # if a0's != 0, then the id is invalid
-    li t1, 1
-    beq a0, t1, syscall_set_engine_torque_motor_2 # if a0's != 1, then the id is invalid
-    j syscall_set_engine_torque_invalid_engineId
+  beq a0, zero, syscall_set_engine_torque_motor_1 # if a0's != 0, then the id is invalid
+  li t1, 1
+  beq a0, t1, syscall_set_engine_torque_motor_2 # if a0's != 1, then the id is invalid
+  j syscall_set_engine_torque_invalid_engineId
 
   syscall_set_engine_torque_motor_1:
     li t1, peripheral_torque_motor_1
@@ -323,11 +317,8 @@ syscall_set_engine_torque:
     li a0, 0
     j syscall_set_engine_torque_return
 
-  syscall_set_engine_torque_invalid_value:
-    li a0, -1
-    j syscall_set_engine_torque_return
   syscall_set_engine_torque_invalid_engineId:
-    li a0, -2
+    li a0, -1
     j syscall_set_engine_torque_return
 
   syscall_set_engine_torque_return:

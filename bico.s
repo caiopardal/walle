@@ -34,12 +34,13 @@ set_torque:
   j set_torque_return
   
   set_torque_error:
-    li a0, -1
+    li t0, -1
+    beq a0, t0, set_torque_return
+    
+    li a0, 0
     j set_torque_return
   
   set_torque_return:
-    lw a1, 0(sp) # pop a1 from stack
-    lw a0, 4(sp) # pop a0 from stack
     lw ra, 8(sp)
     addi sp, sp, 12
     ret
@@ -56,9 +57,28 @@ set_head_servo:
 # return -> -1 in case the torque value is invalid (out of range) / -2 in case the engine_id is invalid / 0 in case both values are valid (the return is in the a0)
 .globl set_engine_torque
 set_engine_torque:
-  li a7, 18
+  li t0, -100 
+  blt a1, t0, set_engine_torque_invalid_value # if torque's value is less than -100
+  li t0, 100
+  bgt a1, t0, set_engine_torque_invalid_value # if torque's value is greater than 100
+
+  li a7, 18 # syscall
   ecall
-  ret
+
+  li t0, -1 # check if it's a invalid motor id
+  beq a0, t0, set_engine_torque_invalid_motor_id
+  j set_engine_torque_return
+
+  set_engine_torque_invalid_motor_id:
+    li a0, -2
+    j set_engine_torque_return
+
+  set_engine_torque_invalid_value:
+    li a0, -1
+    j set_engine_torque_return
+  
+  set_engine_torque_return:
+    ret
     
 # args -> none
 # return -> a0: distance of nearest object within the detection range, in centimeters.
